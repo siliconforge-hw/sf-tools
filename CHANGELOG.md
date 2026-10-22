@@ -1,5 +1,14 @@
 # Changelog — sf-tools
 
+## [0.5.0] — 2026-10-22
+### Added
+- `hooks/pre-commit` : `make lint` / `regs-check` / `sw-lint` selon les fichiers indexés ; activation `make hooks`
+- `ci/setup_tools.sh` : installation idempotente de la chaîne d'outils (OSS CAD Suite épinglée, venvs cocotb et
+  PeakRDL aux versions exactes de `ci/requirements-*.txt`, cppcheck, clang-format, arm-none-eabi-gcc)
+- `templates/ci.yml` : workflow GitHub Actions (clone `--recursive`, cache des outils, `regs-check`, `lint`,
+  `sw-lint`, `sim-all`, journaux en cas d'échec) — validé sur ip-uart : vert, et rouge sur une violation
+- `templates/Makefile.ip` : cible `hooks`
+
 ## [0.4.0] — 2026-10-22
 ### Added
 - `docs/standards/` : SF-HDL-001 v1.3 (autonome : profil SV-synth défini en HDL-7.5, activation par
