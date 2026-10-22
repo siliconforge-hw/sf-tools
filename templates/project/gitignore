@@ -1,0 +1,44 @@
+# Build artifacts
+build/
+
+# Simulation waveforms & logs
+**/*.vcd
+**/*.fst
+**/*.log
+
+# Vivado generated
+synth/fpga/**/*.runs/
+synth/fpga/**/*.cache/
+synth/fpga/**/*.hw/
+synth/fpga/**/*.ip_user_files/
+synth/fpga/**/*.sim/
+synth/fpga/**/*.xpr
+synth/fpga/**/vivado*.jou
+synth/fpga/**/vivado*.log
+synth/fpga/**/.Xil/
+synth/fpga/**/bitstream/*.bit
+synth/fpga/**/bitstream/*.bin
+
+# LibreLane ASIC runs
+synth/asic/**/runs/
+
+# Editor
+.vscode/
+*.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# cocotb / pytest / Vivado batch
+results.xml
+*.result.xml
+.pytest_cache/
+.Xil/
+*.jou
+vivado*.log

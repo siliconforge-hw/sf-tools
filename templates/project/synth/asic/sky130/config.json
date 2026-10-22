@@ -1,0 +1,23 @@
+{
+    "DESIGN_NAME": "<top>",
+    "VERILOG_FILES": ["dir::../../../src/**/*.sv"],
+    "USE_SLANG": true,
+
+    "CLOCK_PORT": "clk_i",
+    "CLOCK_PERIOD": 20.0,
+
+    "PDK": "sky130",
+    "PDK_VARIANT": "sky130A",
+
+    "FP_CORE_UTIL": 40,
+    "FP_ASPECT_RATIO": 1,
+    "PL_TARGET_DENSITY": 0.5,
+
+    "DESIGN_IS_CORE": true,
+
+    "//NOTES": [
+        "CLOCK_PERIOD : 20ns = 50 MHz. Réduire pour des designs plus rapides.",
+        "FP_CORE_UTIL : utilisation cœur 40%. Augmenter si design trop grand.",
+        "PL_TARGET_DENSITY : densité placement 50%. Ajuster selon congestion."
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "DESIGN_NAME": "<top>",
+    "VERILOG_FILES": ["dir::../../../src/**/*.sv"],
+    "USE_SLANG": true,
+
+    "CLOCK_PORT": "clk_i",
+    "CLOCK_PERIOD": 25.0,
+
+    "PDK": "gf180mcuD",
+    "PDK_VARIANT": "gf180mcuD",
+
+    "FP_CORE_UTIL": 40,
+    "FP_ASPECT_RATIO": 1,
+    "PL_TARGET_DENSITY": 0.5,
+
+    "DESIGN_IS_CORE": true
+}
