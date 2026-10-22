@@ -17,9 +17,10 @@ git clone --recursive <projet>                 # un clone fonctionne seul, outil
 | `bin/gen_regs.sh` | SystemRDL → banc de registres SV, couche C SF-CS-001, doc, IP-XACT ; `--check` | `make regs`, `make regs-check` |
 | `regmap/gen_c_hw.py` | générateur de `<ip>_regs_hw.h` (structure, macros, hooks, accesseurs typés) | — |
 | `style/clang-format` | mise en forme C SF-CS-001 §5.9 | — |
+| `bin/sw_lint.sh` | conformité SF-CS-001 : SF-090 (hôte, ARM, RISC-V), headers seuls (SF-004), cppcheck MISRA, clang-format | `make sw-lint`, `make sw-format` |
 | `bin/check_tools.sh` | versions des outils EDA installés | `make check-env` |
 
-Outils attendus (voir `~/tools/tools.txt`) : Verilator, Icarus, OSS CAD Suite (Yosys + slang), PeakRDL (`~/tools/venvs/peakrdl`), clang-format, cocotb (`~/tools/venvs/cocotb`).
+Outils attendus (voir `~/tools/tools.txt`) : Verilator, Icarus, OSS CAD Suite (Yosys + slang), PeakRDL (`~/tools/venvs/peakrdl`), clang-format, cppcheck (addon MISRA), gcc, arm-none-eabi-gcc (Vitis), riscv32-unknown-elf-gcc, cocotb (`~/tools/venvs/cocotb`).
 
 Normes : SF-HDL-001 (RTL) et SF-CS-001 (C), dans le dépôt `claude-env` (`docs/standards/`).
 
