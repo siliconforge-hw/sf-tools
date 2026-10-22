@@ -4,7 +4,7 @@
 #   --targets : compilateurs à utiliser (défaut "host arm") ; un compilateur absent est signalé et ignoré
 #   --fix     : applique clang-format aux fichiers écrits à la main au lieu de vérifier (jamais sur gen/)
 # Variables : MISRA_SUPPR (défaut sw/misra_suppressions.txt), MISRA_RULES (textes des règles, facultatif),
-#             ARM_CC, RISCV_CC, CPPCHECK, CLANG_FORMAT, SW_LINT_DIR (défaut build/sw-lint).
+#             SW_LINT_DIR (défaut build/sw-lint) ; chemins des outils : bin/sf_config.sh.
 # Chaque header est aussi compilé seul (SF-004) : un projet qui n'a encore que sa couche générée est contrôlé.
 # Code de sortie : 0 si conforme, 1 sinon.
 set -uo pipefail
@@ -23,10 +23,10 @@ while [ $# -gt 0 ]; do
 done
 [ ${#DIRS[@]} -gt 0 ] || DIRS=(sw)
 
-ARM_CC="${ARM_CC:-$(command -v arm-none-eabi-gcc || ls "$HOME"/tools/Xilinx/Vitis/*/gnu/aarch32/lin/gcc-arm-none-eabi/bin/arm-none-eabi-gcc 2>/dev/null | tail -1)}"
-RISCV_CC="${RISCV_CC:-$(command -v riscv32-unknown-elf-gcc || echo "$HOME/tools/riscv/bin/riscv32-unknown-elf-gcc")}"
-CPPCHECK="${CPPCHECK:-cppcheck}"
-CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
+source "$SF_ROOT/bin/sf_env.sh"   # ARM_CC, RISCV_CC, CPPCHECK, CLANG_FORMAT
+# compilateur de la configuration absent : celui du PATH s'il existe
+command -v "$ARM_CC" >/dev/null 2>&1 || ARM_CC="$(command -v arm-none-eabi-gcc || true)"
+command -v "$RISCV_CC" >/dev/null 2>&1 || RISCV_CC="$(command -v riscv32-unknown-elf-gcc || true)"
 MISRA_SUPPR="${MISRA_SUPPR:-sw/misra_suppressions.txt}"
 OUT="${SW_LINT_DIR:-build/sw-lint}"
 SF_CFLAGS=(-std=c99 -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow -Wcast-qual

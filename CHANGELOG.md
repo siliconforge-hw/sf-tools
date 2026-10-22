@@ -1,5 +1,15 @@
 # Changelog — sf-tools
 
+## [0.3.0] — 2026-10-22
+### Added
+- `config/defaults.env` : chemins des outils de l'environnement de référence, en un seul endroit
+- `bin/sf_env.sh` : chargeur (variable d'environnement > `~/.config/sf-tools/config.env` > défauts),
+  valeurs fusionnées puis développées (redéfinir `TOOLS_ROOT` déplace les chemins qui en dépendent)
+- `bin/sf_config.sh` : affichage avec origine de chaque valeur, `--get` (Makefiles), `--init` (nouvel utilisateur)
+### Changed
+- `lint.sh`, `gen_regs.sh`, `sw_lint.sh`, `check_tools.sh` : plus aucun chemin en dur ; slang détecté
+  en chargeant le plugin (plus de comparaison de chemin) ; branche principale renommée `main`
+
 ## [0.2.0] — 2026-10-22
 ### Added
 - `bin/sw_lint.sh` : conformité SF-CS-001 — compilation stricte SF-090 (hôte, arm-none-eabi, riscv32),

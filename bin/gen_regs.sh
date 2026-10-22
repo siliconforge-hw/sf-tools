@@ -11,9 +11,8 @@
 set -euo pipefail
 
 SF_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PEAKRDL="${PEAKRDL:-$HOME/tools/venvs/peakrdl/bin/peakrdl}"
+source "$SF_ROOT/bin/sf_env.sh"   # PEAKRDL, CLANG_FORMAT
 PYTHON="$(dirname "$PEAKRDL")/python"
-CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
 CHECK=0
 CPUIF="axi4-lite-flat"
 VERSION="1.0"
@@ -30,7 +29,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "$RDL" ] && [ -f "$RDL" ] || { echo "gen_regs.sh : fichier .rdl attendu"; exit 1; }
-[ -x "$PEAKRDL" ] || { echo "gen_regs.sh : PeakRDL introuvable ($PEAKRDL), variable PEAKRDL"; exit 1; }
+[ -x "$PEAKRDL" ] || { echo "gen_regs.sh : PeakRDL introuvable ($PEAKRDL) : renseigner PEAKRDL (bin/sf_config.sh)"; exit 1; }
 command -v "$CLANG_FORMAT" >/dev/null || { echo "gen_regs.sh : $CLANG_FORMAT introuvable (requis pour une sortie C déterministe)"; exit 1; }
 
 NAME=$(basename "$RDL" .rdl)_regs

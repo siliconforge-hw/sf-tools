@@ -19,6 +19,19 @@ git clone --recursive <projet>                 # un clone fonctionne seul, outil
 | `style/clang-format` | mise en forme C SF-CS-001 §5.9 | — |
 | `bin/sw_lint.sh` | conformité SF-CS-001 : SF-090 (hôte, ARM, RISC-V), headers seuls (SF-004), cppcheck MISRA, clang-format | `make sw-lint`, `make sw-format` |
 | `bin/check_tools.sh` | versions des outils EDA installés | `make check-env` |
+| `bin/sf_config.sh`, `bin/sf_env.sh`, `config/defaults.env` | configuration des chemins d'outils | `make sf-config` |
+
+## Configurer les chemins des outils
+
+Les chemins par défaut sont ceux de l'environnement de référence (`config/defaults.env`). Sur un autre poste :
+
+```bash
+bash tools/sf/bin/sf_config.sh --init     # crée ~/.config/sf-tools/config.env, tout commenté
+$EDITOR ~/.config/sf-tools/config.env      # décommenter les lignes qui diffèrent (souvent TOOLS_ROOT suffit)
+bash tools/sf/bin/sf_config.sh            # vérifier : valeur, origine (env/user/defaults), (absent)
+```
+
+Priorité : variable d'environnement (`PEAKRDL=… make regs`) > fichier utilisateur > défauts. Le fichier utilisateur vaut pour tous les projets ; il n'est jamais versionné. Les Makefiles lisent la même configuration (`sf_config.sh --get`).
 
 Outils attendus (voir `~/tools/tools.txt`) : Verilator, Icarus, OSS CAD Suite (Yosys + slang), PeakRDL (`~/tools/venvs/peakrdl`), clang-format, cppcheck (addon MISRA), gcc, arm-none-eabi-gcc (Vitis), riscv32-unknown-elf-gcc, cocotb (`~/tools/venvs/cocotb`).
 

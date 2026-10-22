@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Affiche la version de chaque outil EDA attendu, ou ABSENT.
-T="$HOME/tools"
+# Affiche la version de chaque outil EDA attendu, ou ABSENT. Chemins : bin/sf_config.sh.
+source "$(dirname "$0")/sf_env.sh"
 
 check() { # nom commande...
 	local name="$1"; shift
@@ -13,25 +13,28 @@ check() { # nom commande...
 }
 
 echo "Simulation / lint"
-check iverilog   sh -c 'iverilog -V 2>&1 | head -1'
-check verilator  verilator --version
-check gtkwave    sh -c 'command -v gtkwave'
+check iverilog   sh -c "$IVERILOG -V 2>&1 | head -1"
+check verilator  "$VERILATOR" --version
+check gtkwave    sh -c "command -v $GTKWAVE"
 check vsim       sh -c 'command -v vsim'
 echo "Synthèse"
-check yosys      yosys -V
-check yosys-oss  "$T/oss-cad-suite/bin/yosys" -V
-check slang      sh -c "$T/oss-cad-suite/bin/yosys -m slang -p 'help read_slang' >/dev/null 2>&1 && echo 'plugin OK' || false"
-check oss-cad    cat "$T/oss-cad-suite/VERSION"
-check vivado    sh -c "ls -d $T/Xilinx/Vivado/*/ 2>/dev/null | xargs -n1 basename | tr '\n' ' '"
+check yosys      "$YOSYS" -V
+check slang      sh -c "$YOSYS -m slang -p 'help read_slang' >/dev/null 2>&1 && echo 'plugin OK' || false"
+check oss-cad    cat "$OSS_CAD/VERSION"
+check vivado     sh -c "test -f '$VITIS_SETTINGS' && echo '$VITIS_SETTINGS'"
 echo "ASIC"
 check nix        nix --version
-check librelane  sh -c "cd $T/librelane 2>/dev/null && git describe --tags"
-check pdk        sh -c "ls $HOME/workspace/asic/pdk 2>/dev/null | tr '\n' ' '"
-echo "Toolchains"
-check riscv32    "$T/riscv/bin/riscv32-unknown-elf-gcc" --version
-check arm-gcc    sh -c "ls $T/Xilinx/Vitis/*/gnu/aarch32/lin/gcc-arm-none-eabi/bin/arm-none-eabi-gcc 2>/dev/null"
+check librelane  sh -c "cd '$LIBRELANE' 2>/dev/null && git describe --tags"
+check pdk        sh -c "ls '$PDK_ROOT' 2>/dev/null | tr '\n' ' '"
+echo "Logiciel"
+check arm-gcc    "$ARM_CC" --version
+check riscv32    "$RISCV_CC" --version
+check cppcheck   "$CPPCHECK" --version
+check clang-fmt  "$CLANG_FORMAT" --version
 echo "Python"
-check cocotb     "$T/venvs/cocotb/bin/cocotb-config" --version
-check pyuvm      "$T/venvs/cocotb/bin/python" -c 'import importlib.metadata as m; print(m.version("pyuvm"))'
-check cocotbext  "$T/venvs/cocotb/bin/python" -c 'import importlib.metadata as m; print(m.version("cocotbext-axi"))'
-check peakrdl    "$T/venvs/peakrdl/bin/peakrdl" --version
+check cocotb     "$COCOTB_VENV/bin/cocotb-config" --version
+check pyuvm      "$COCOTB_VENV/bin/python" -c 'import importlib.metadata as m; print(m.version("pyuvm"))'
+check cocotbext  "$COCOTB_VENV/bin/python" -c 'import importlib.metadata as m; print(m.version("cocotbext-axi"))'
+check peakrdl    "$PEAKRDL" --version
+echo
+echo "Configuration : $(dirname "$0")/sf_config.sh (fichier utilisateur : $SF_USER_CONFIG)"

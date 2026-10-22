@@ -5,6 +5,7 @@
 # À lancer depuis la racine du projet.
 # Code de sortie : 0 si aucune erreur, 1 sinon. Les warnings n'échouent pas le lint mais sont listés.
 set -u
+source "$(dirname "$0")/sf_env.sh"   # VERILATOR, IVERILOG, YOSYS (config/defaults.env, ~/.config/sf-tools/config.env)
 
 TOP=""
 DEFS=()
@@ -54,8 +55,8 @@ if [ ${#GEN_FILES[@]} -gt 0 ]; then
 fi
 
 echo "== [1/4] Verilator --lint-only -Wall"
-if command -v verilator >/dev/null; then
-	verilator --lint-only -Wall ${TOP:+--top-module "$TOP"} "${V_ARGS[@]+"${V_ARGS[@]}"}" "${V_GEN[@]+"${V_GEN[@]}"}" "${FILES[@]}" >"$LOG_DIR/verilator.log" 2>&1
+if command -v "$VERILATOR" >/dev/null; then
+	"$VERILATOR" --lint-only -Wall ${TOP:+--top-module "$TOP"} "${V_ARGS[@]+"${V_ARGS[@]}"}" "${V_GEN[@]+"${V_GEN[@]}"}" "${FILES[@]}" >"$LOG_DIR/verilator.log" 2>&1
 	rc=$?
 	grep -E '^%(Error|Warning)' "$LOG_DIR/verilator.log" | grep -v 'Exiting due to' | head -40
 	nerr=$(grep '^%Error' "$LOG_DIR/verilator.log" | grep -vc 'Exiting due to')
@@ -74,8 +75,8 @@ else
 fi
 
 echo "== [2/4] Icarus iverilog -g2012"
-if command -v iverilog >/dev/null; then
-	if iverilog -g2012 -Wall ${TOP:+-s "$TOP"} "${I_ARGS[@]+"${I_ARGS[@]}"}" -o /dev/null "${FILES[@]}" >"$LOG_DIR/iverilog.log" 2>&1; then
+if command -v "$IVERILOG" >/dev/null; then
+	if "$IVERILOG" -g2012 -Wall ${TOP:+-s "$TOP"} "${I_ARGS[@]+"${I_ARGS[@]}"}" -o /dev/null "${FILES[@]}" >"$LOG_DIR/iverilog.log" 2>&1; then
 		echo "   -> OK"
 	elif [ ${#GEN_FILES[@]} -gt 0 ] && ! grep -E '^[^:]+:[0-9]+:' "$LOG_DIR/iverilog.log" | grep -qv '/gen/'; then
 		# tous les messages viennent du code généré (PeakRDL : struct non packés, variables automatic)
@@ -92,11 +93,13 @@ else
 fi
 
 # Yosys récent + frontend slang (OSS CAD Suite) si disponible, sinon Yosys apt avec read_verilog -sv
-OSS_YOSYS="$HOME/tools/oss-cad-suite/bin/yosys"
-YOSYS="${YOSYS:-$( [ -x "$OSS_YOSYS" ] && echo "$OSS_YOSYS" || command -v yosys )}"
-echo "== [3/4] Yosys synth générique ($(basename "$(dirname "$(dirname "$YOSYS")")")/$("$YOSYS" -V 2>/dev/null | awk '{print $2}'))"
-if [ -n "$YOSYS" ] && [ -x "$YOSYS" ]; then
-	if [ "$YOSYS" = "$OSS_YOSYS" ]; then
+# YOSYS de la configuration s'il existe, sinon celui du PATH ; slang utilisé s'il se charge
+command -v "$YOSYS" >/dev/null 2>&1 || YOSYS="$(command -v yosys || true)"
+SLANG=0
+[ -n "$YOSYS" ] && "$YOSYS" -m slang -p "help read_slang" >/dev/null 2>&1 && SLANG=1
+echo "== [3/4] Yosys synth générique ($("$YOSYS" -V 2>/dev/null | awk '{print $2}')$([ $SLANG -eq 1 ] && echo " + slang"))"
+if [ -n "$YOSYS" ]; then
+	if [ $SLANG -eq 1 ]; then
 		Y_ARGS=(-m slang)
 		READ="read_slang$Y_DEFS ${TOP:+--top $TOP} ${FILES[*]}"
 	else
