@@ -115,7 +115,11 @@ pdk: ## Télécharger le PDK sky130 (première fois)
 # ============================================================
 # UTILITAIRES
 # ============================================================
-.PHONY: sf-config check-env clean help
+.PHONY: hooks sf-config check-env clean help
+
+hooks: ## Activer le hook git pre-commit de sf-tools (lint, regs-check, sw-lint selon les fichiers indexés)
+	git config core.hooksPath $(SF_TOOLS)/hooks
+	@echo "pre-commit actif (hooksPath = $(SF_TOOLS)/hooks) ; passer outre : git commit --no-verify"
 
 sf-config: ## Afficher la configuration des chemins d'outils (et son origine)
 	bash $(SF_TOOLS)/bin/sf_config.sh

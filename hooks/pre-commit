@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Hook git pre-commit sf-tools : contrôles rapides selon les fichiers indexés.
+# Activation dans un projet : make hooks  (git config core.hooksPath tools/sf/hooks)
+#   RTL (src/, rtl/)                       → make lint
+#   regs/*.rdl, fichiers générés (gen/)    → make regs-check
+#   C (sw/)                                → make sw-lint
+# Les simulations sont laissées à la CI. Passer outre : git commit --no-verify, ou SF_SKIP_HOOKS=1.
+# Limite : les contrôles portent sur l'arbre de travail (modifications non indexées comprises).
+set -u
+
+[ -n "${SF_SKIP_HOOKS:-}" ] && exit 0
+cd "$(git rev-parse --show-toplevel)" || exit 0
+[ -f sf-project.env ] || exit 0            # pas un projet sf-tools
+
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR)"
+[ -n "$STAGED" ] || exit 0
+
+LOG_DIR=build/pre-commit
+mkdir -p "$LOG_DIR"
+FAIL=0
+run() { # cible
+	local target="$1"
+	printf '[pre-commit] make %-11s ' "$target"
+	if make -s "$target" >"$LOG_DIR/$target.log" 2>&1; then
+		echo "OK"
+	else
+		echo "ÉCHEC (journal : $LOG_DIR/$target.log)"
+		grep -E '^%|ÉCHEC|périmé|error|Error' "$LOG_DIR/$target.log" | head -15 | sed 's/^/    /'
+		FAIL=1
+	fi
+}
+
+grep -qE '^(src|rtl)/.*\.s?v$' <<<"$STAGED" && run lint
+grep -qE '^(regs/.*\.rdl|src/gen/|sw/gen/|docs/gen/|ipxact/)' <<<"$STAGED" && run regs-check
+grep -qE '^sw/.*\.[ch]$' <<<"$STAGED" && run sw-lint
+
+if [ $FAIL -ne 0 ]; then
+	echo "[pre-commit] commit refusé. Corriger, ou passer outre : git commit --no-verify"
+	exit 1
+fi
+exit 0

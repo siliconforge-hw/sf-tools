@@ -1,0 +1,50 @@
+# CI d'un projet sf-tools — à copier dans .github/workflows/ci.yml
+# Vérifie qu'un clone du projet se construit sans rien d'autre que les outils : registres à jour,
+# lint RTL (4 passes, norme), conformité C, simulations. L'installation des outils vient de la
+# version de sf-tools épinglée par le sous-module (tools/sf/ci/).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache des outils (OSS CAD Suite, venvs)
+        uses: actions/cache@v4
+        with:
+          path: ~/tools
+          key: sf-tools-${{ runner.os }}-${{ hashFiles('tools/sf/ci/versions.env', 'tools/sf/ci/requirements-*.txt') }}
+
+      - name: Installation des outils
+        run: bash tools/sf/ci/setup_tools.sh
+
+      - name: Configuration
+        run: bash tools/sf/bin/sf_config.sh
+
+      - name: Registres à jour
+        run: make regs-check
+
+      - name: Lint RTL
+        run: make lint
+
+      - name: Conformité C (SF-CS-001)
+        run: make sw-lint
+
+      - name: Simulations
+        run: make sim-all
+
+      - name: Journaux en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build/
+          if-no-files-found: ignore

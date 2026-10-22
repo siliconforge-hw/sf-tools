@@ -38,9 +38,16 @@ HDL_STANDARD=SF-HDL-001
 | `bin/sf_config.sh`, `bin/sf_env.sh`, `config/defaults.env` | configuration des chemins d'outils | `make sf-config` |
 | `style/clang-format` | mise en forme C (SF-CS-001 §5.9) | — |
 | `docs/standards/` | **SF-HDL-001** (RTL SystemVerilog) et **SF-CS-001** (C embarqué) : les normes appliquées par ces outils | — |
-| `templates/` | modèles d'un nouveau projet : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt` | — |
+| `templates/` | modèles d'un nouveau projet : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt`, `ci.yml` (GitHub Actions) | — |
+| `hooks/pre-commit` | hook git : `lint` / `regs-check` / `sw-lint` selon les fichiers indexés | `make hooks` |
+| `ci/setup_tools.sh`, `ci/versions.env`, `ci/requirements-*.txt` | installation épinglée de la chaîne d'outils (CI, nouveau poste Ubuntu 24.04) | — |
 
 Les messages des outils citent les règles des normes (`%Style-HDL-3.1`, `SF-033`, `DP-02`…) : leur texte est dans `docs/standards/`. Le texte des règles MISRA C:2012, payant, n'est pas reproduit (numéros seulement).
+
+## Garanties : pre-commit et CI
+
+- **pre-commit** (`make hooks`, une fois par clone) : avant chaque commit, `make lint` si du RTL est indexé, `make regs-check` si un `.rdl` ou un fichier généré l'est, `make sw-lint` pour du C. Passer outre : `git commit --no-verify`.
+- **CI** (`templates/ci.yml` → `.github/workflows/ci.yml`) : à chaque push, un clone `--recursive` du projet installe les outils épinglés (`ci/setup_tools.sh`, en cache) puis lance `regs-check`, `lint`, `sw-lint`, `sim-all`. C'est la garantie permanente qu'un projet se construit avec ses seuls outils. Hors CI : Vivado, LibreLane, RISC-V.
 
 ## Configurer les chemins des outils
 
