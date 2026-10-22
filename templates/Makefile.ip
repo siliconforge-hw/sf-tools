@@ -1,0 +1,138 @@
+# ============================================================
+# Makefile — profil ip/board/hls (modèle sf-tools templates/Makefile.ip)
+# Usage : make <cible> [VAR=valeur] ; make help
+# ============================================================
+
+# Identité du projet : PROJECT, IP_ID, TOP_MODULE, IP_PREFIX, HDL_STANDARD
+include sf-project.env
+
+SF_TOOLS     ?= tools/sf
+
+# --- Répertoires ---
+SRC_DIR      = src
+SIM_DIR      = sim
+BUILD_DIR    = build
+FPGA_DIR     = synth/fpga/arty_z7_20
+ASIC_SKY130  = synth/asic/sky130
+
+# Outils de build (sous-module sf-tools) : git submodule update --init
+ifeq ($(wildcard $(SF_TOOLS)/bin/lint.sh),)
+$(error $(SF_TOOLS) absent : lancer « git submodule update --init »)
+endif
+
+# Chemins des outils : configuration sf-tools (tools/sf/config/defaults.env, surchargée par
+# ~/.config/sf-tools/config.env) ; une valeur passée à make ou par l'environnement reste prioritaire.
+# Voir : bash tools/sf/bin/sf_config.sh
+SF_GET = $(shell bash $(SF_TOOLS)/bin/sf_config.sh --get $(1))
+define sf_default
+ifeq ($$(origin $(1)),undefined)
+$(1) := $$(call SF_GET,$(1))
+endif
+endef
+$(foreach v,VIVADO VITIS_SETTINGS PDK_ROOT LIBRELANE COCOTB_VENV GTKWAVE,$(eval $(call sf_default,$(v))))
+
+RTL_SRCS     = $(shell find $(SRC_DIR) -name "*.v" -o -name "*.sv" 2>/dev/null)
+RDL_SRCS     = $(wildcard regs/*.rdl)
+GEN_REGS     = $(SF_TOOLS)/bin/gen_regs.sh
+
+# ============================================================
+# REGISTRES — SystemRDL → PeakRDL (si regs/*.rdl existe)
+# ============================================================
+.PHONY: regs regs-check
+
+regs: ## Régénérer RTL, en-tête C, doc et IP-XACT depuis regs/*.rdl
+	@test -n "$(RDL_SRCS)" || { echo "Aucun regs/*.rdl"; exit 1; }
+	@for f in $(RDL_SRCS); do bash $(GEN_REGS) $$f || exit 1; done
+
+regs-check: ## Vérifier que les fichiers générés sont à jour
+	@for f in $(RDL_SRCS); do bash $(GEN_REGS) --check $$f || exit 1; done
+
+# ============================================================
+# LINT
+# ============================================================
+.PHONY: lint
+
+lint: regs-check ## Lint 4 passes (Verilator, Icarus, Yosys+slang, norme SF-HDL-001)
+	bash $(SF_TOOLS)/bin/lint.sh -t $(TOP_MODULE) $(SRC_DIR)/
+
+# ============================================================
+# LOGICIEL — conformité SF-CS-001 (si sw/ existe)
+# ============================================================
+.PHONY: sw-lint sw-format
+
+SW_TARGETS ?= host arm
+
+sw-lint: ## Conformité SF-CS-001 : compilation SF-090 (SW_TARGETS), cppcheck MISRA, clang-format
+	bash $(SF_TOOLS)/bin/sw_lint.sh --targets "$(SW_TARGETS)" sw/
+
+sw-format: ## Appliquer clang-format au C écrit à la main (sw/, hors gen/)
+	bash $(SF_TOOLS)/bin/sw_lint.sh --targets "" --fix sw/
+
+# ============================================================
+# SIMULATION — cocotb
+# ============================================================
+.PHONY: sim sim-all wave
+
+SIM ?= icarus
+WAVES ?= 0
+
+sim: ## Simulation cocotb — make sim [SIM=icarus|verilator] [WAVES=1]
+	SIM=$(SIM) WAVES=$(WAVES) $(COCOTB_VENV)/bin/pytest $(SIM_DIR)/cocotb -v
+
+sim-all: ## Régression cocotb sur Icarus puis Verilator
+	SIM=icarus    $(COCOTB_VENV)/bin/pytest $(SIM_DIR)/cocotb -v
+	SIM=verilator $(COCOTB_VENV)/bin/pytest $(SIM_DIR)/cocotb -v
+
+wave: ## Ouvrir les formes d'onde — make wave [SIM=icarus]
+	$(GTKWAVE) $$(ls -t $(BUILD_DIR)/cocotb/$(SIM)/*.fst | head -1) &
+
+# ============================================================
+# FPGA — Arty Z7-20 (Vivado batch)
+# ============================================================
+.PHONY: fpga
+
+fpga: ## Synthèse + implémentation + bitstream (Vivado batch)
+	@mkdir -p $(BUILD_DIR)/vivado
+	cd $(BUILD_DIR)/vivado && bash -c 'source $(VITIS_SETTINGS) >/dev/null && \
+		$(VIVADO) -mode batch -source $(CURDIR)/$(FPGA_DIR)/run.tcl \
+		-tclargs $(PROJECT) $(TOP_MODULE) $(CURDIR)'
+	@echo "[FPGA] Bitstream : $(FPGA_DIR)/bitstream/$(TOP_MODULE).bit"
+
+# ============================================================
+# ASIC — LibreLane sky130
+# ============================================================
+.PHONY: asic-sky130 pdk
+
+asic-sky130: ## Flow RTL→GDSII sky130 via LibreLane
+	cd $(LIBRELANE) && nix-shell --run \
+		"librelane $(CURDIR)/$(ASIC_SKY130)/config.json \
+		--pdk-root $(PDK_ROOT)"
+
+pdk: ## Télécharger le PDK sky130 (première fois)
+	cd $(LIBRELANE) && nix-shell --run \
+		"librelane --pdk-root $(PDK_ROOT) --pdk sky130"
+
+# ============================================================
+# UTILITAIRES
+# ============================================================
+.PHONY: sf-config check-env clean help
+
+sf-config: ## Afficher la configuration des chemins d'outils (et son origine)
+	bash $(SF_TOOLS)/bin/sf_config.sh
+
+check-env: ## Vérifier les outils EDA
+	bash $(SF_TOOLS)/bin/check_tools.sh
+
+clean: ## Supprimer les artefacts de build
+	rm -rf $(BUILD_DIR)/* $(ASIC_SKY130)/runs/*/
+	find $(SIM_DIR) -name "__pycache__" -o -name "results.xml" | xargs rm -rf
+
+help: ## Afficher cette aide
+	@echo ""
+	@echo "  $(PROJECT) — top $(TOP_MODULE)"
+	@echo ""
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n",$$1,$$2}'
+	@echo ""
+
+.DEFAULT_GOAL := help

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Lint RTL en quatre passes : Verilator -Wall, Icarus (-g2012), Yosys (synthèse générique + détection de latch),
-# norme SF-HDL-001 (si le CLAUDE.md du projet la déclare, ou --style).
+# norme SF-HDL-001 (si sf-project.env du projet la déclare — HDL_STANDARD —, ou --style).
 # Usage : lint.sh [-t top] [-D MACRO=val]... [-I dir]... [--style|--no-style] [--ip prefixe] fichier_ou_dossier...
 # À lancer depuis la racine du projet.
 # Code de sortie : 0 si aucune erreur, 1 sinon. Les warnings n'échouent pas le lint mais sont listés.

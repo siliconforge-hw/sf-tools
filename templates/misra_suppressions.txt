@@ -1,0 +1,14 @@
+# ============================================================
+# misra_suppressions.txt — Déviations permanentes SF-CS-001 §6.2
+# Format cppcheck : <id>:<fichier (glob)>
+# Une ligne = une déviation enregistrée. Ne rien ajouter ici sans
+# fiche DP-xx (SF-CS-001) ou D-<ip>-xx (note de conformité docs/<IPID>-TN-xxx).
+# DP-01 (11.4) et DP-04 (11.5) sont supprimées en ligne, au cas par cas.
+# ============================================================
+
+# DP-05 — 20.10 / 2.3 : vérifications à la compilation (<IP>_STATIC_ASSERT)
+misra-c2012-20.10:*sw/gen/*_hw.h
+misra-c2012-2.3:*sw/gen/*_hw.h
+
+# DP-06 — 2.5 : macros publiques des headers (couche générée comprise)
+misra-c2012-2.5:*sw/gen/*.h

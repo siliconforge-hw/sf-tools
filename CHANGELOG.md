@@ -1,5 +1,17 @@
 # Changelog — sf-tools
 
+## [0.4.0] — 2026-10-22
+### Added
+- `docs/standards/` : SF-HDL-001 v1.3 (autonome : profil SV-synth défini en HDL-7.5, activation par
+  `sf-project.env`) et SF-CS-001 v1.0 — les normes publiées avec les outils qui les appliquent
+- `templates/` : modèles d'un nouveau projet (`Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py`,
+  `README.ip.md`, `editorconfig`, `misra_suppressions.txt`), versionnés avec les scripts qu'ils appellent
+- `sf-project.env` : déclaration neutre du projet (PROJECT, IP_ID, TOP_MODULE, IP_PREFIX, HDL_STANDARD),
+  incluse par le Makefile
+### Changed
+- `check_style.py` : norme et préfixe d'IP lus dans `sf-project.env` ; `CLAUDE.md` n'est plus qu'un repli
+- README : plus de référence à un dépôt non publié ni à des chemins locaux
+
 ## [0.3.0] — 2026-10-22
 ### Added
 - `config/defaults.env` : chemins des outils de l'environnement de référence, en un seul endroit

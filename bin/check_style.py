@@ -3,9 +3,10 @@
 
 Usage : check_style.py [--project DIR] [--force] [--ip <prefixe>] [--tab 4] fichier_ou_dossier...
 
-Avec --project, le contrôle ne s'applique que si DIR/CLAUDE.md déclare la norme
-(ligne contenant « SF-HDL-001 ») ; le préfixe d'IP est lu dans la ligne
-« | Préfixe IP | `uart` | » du même fichier. --force ignore cette condition.
+Avec --project, le contrôle ne s'applique que si le projet déclare la norme :
+  DIR/sf-project.env : HDL_STANDARD=SF-HDL-001 et IP_PREFIX=<ip>
+  (repli pour les projets plus anciens : DIR/CLAUDE.md qui mentionne « SF-HDL-001 »
+  et contient la ligne « | Préfixe IP | `uart` | »). --force ignore cette condition.
 Sortie : une ligne par écart, au format  %Style-HDL-x.y: fichier:ligne: message
 Code de sortie : 0 si aucun écart, 1 sinon.
 
@@ -409,8 +410,23 @@ class Checker:
                 self.report("HDL-6.6", i, "code commenté")
 
 
+def read_project_env(root):
+    """Clés CLE=valeur de <root>/sf-project.env (commentaires et lignes vides ignorés)."""
+    f = Path(root) / "sf-project.env"
+    values = {}
+    if f.is_file():
+        for line in f.read_text(encoding="utf-8", errors="replace").splitlines():
+            m = re.match(r"^\s*([A-Z_][A-Z0-9_]*)=([^#]*)", line)
+            if m:
+                values[m.group(1)] = m.group(2).strip()
+    return values
+
+
 def project_config(root):
-    """(norme déclarée ?, préfixe d'IP) d'après <root>/CLAUDE.md — jamais les CLAUDE.md parents."""
+    """(norme déclarée ?, préfixe d'IP) d'après sf-project.env, sinon <root>/CLAUDE.md (jamais un parent)."""
+    env = read_project_env(root)
+    if env:
+        return "SF-HDL-001" in env.get("HDL_STANDARD", ""), env.get("IP_PREFIX") or None
     f = Path(root) / "CLAUDE.md"
     if not f.is_file():
         return False, None
@@ -424,7 +440,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ip", help="préfixe d'IP attendu pour les modules (HDL-2.1)")
     ap.add_argument("--tab", type=int, default=4)
-    ap.add_argument("--project", help="racine du projet : contrôle seulement si son CLAUDE.md déclare SF-HDL-001")
+    ap.add_argument("--project", help="racine du projet : contrôle seulement si sf-project.env (ou CLAUDE.md) déclare SF-HDL-001")
     ap.add_argument("--force", action="store_true", help="contrôler même si la norme n'est pas déclarée")
     ap.add_argument("paths", nargs="+")
     a = ap.parse_args()
@@ -432,11 +448,11 @@ def main():
     if a.project:
         declared, ip = project_config(a.project)
         if not declared and not a.force:
-            print("   -> norme SF-HDL-001 non déclarée dans CLAUDE.md du projet : contrôle ignoré", file=sys.stderr)
+            print("   -> norme SF-HDL-001 non déclarée (sf-project.env : HDL_STANDARD) : contrôle ignoré", file=sys.stderr)
             return 0
         a.ip = a.ip or ip
     if not a.ip:
-        print("   (préfixe d'IP inconnu : HDL-2.1 non vérifiée ; ajouter « | Préfixe IP | `<ip>` | » au CLAUDE.md)", file=sys.stderr)
+        print("   (préfixe d'IP inconnu : HDL-2.1 non vérifiée ; renseigner IP_PREFIX dans sf-project.env)", file=sys.stderr)
     files = []
     for p in map(Path, a.paths):
         files += sorted(p.rglob("*.sv")) if p.is_dir() else [p]
