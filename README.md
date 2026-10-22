@@ -22,6 +22,6 @@ git clone --recursive <projet>                 # un clone fonctionne seul, outil
 
 Outils attendus (voir `~/tools/tools.txt`) : Verilator, Icarus, OSS CAD Suite (Yosys + slang), PeakRDL (`~/tools/venvs/peakrdl`), clang-format, cppcheck (addon MISRA), gcc, arm-none-eabi-gcc (Vitis), riscv32-unknown-elf-gcc, cocotb (`~/tools/venvs/cocotb`).
 
-Normes : SF-HDL-001 (RTL) et SF-CS-001 (C), dans le dépôt `claude-env` (`docs/standards/`).
+Normes : SF-HDL-001 (RTL) dans le dépôt `claude-env` (`docs/standards/`, lien `~/workspace/info/SF-HDL-001.md`) ; SF-CS-001 (C) dans `ip-gpio/docs/standards/SF-CS-001-v1.0.md`.
 
 Versionnement : semver, un tag par version ; un changement qui peut faire échouer le lint d'un projet existant (nouvelle règle contrôlée) est une version MINOR, documentée dans `CHANGELOG.md`.
