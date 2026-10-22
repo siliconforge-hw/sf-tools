@@ -1,0 +1,25 @@
+# ============================================================
+# .clang-format — mise en forme C (SF-CS-001 §5.9)
+# Vérification : make sw-lint   |   Application : make sw-format
+# ============================================================
+Language:                            Cpp
+BasedOnStyle:                        LLVM
+IndentWidth:                         4
+UseTab:                              Never
+ColumnLimit:                         100
+BreakBeforeBraces:                   Linux
+PointerAlignment:                    Right
+IndentCaseLabels:                    false
+AllowShortFunctionsOnASingleLine:    None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine:        false
+AllowShortBlocksOnASingleLine:       Never
+AllowShortCaseLabelsOnASingleLine:   false
+AlignConsecutiveMacros:              Consecutive
+AlignConsecutiveAssignments:         Consecutive
+AlignTrailingComments:               true
+AlignAfterOpenBracket:               Align
+SpacesBeforeTrailingComments:        1
+SortIncludes:                        Never
+IncludeBlocks:                       Preserve
+ReflowComments:                      false
