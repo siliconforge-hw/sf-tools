@@ -1,5 +1,15 @@
 # Changelog — sf-tools
 
+## [0.6.0] — 2026-10-22
+### Added
+- `bin/new_project.sh` : création d'un projet sans assistant (profils ip/board/hls, cibles FPGA/ASIC,
+  SV-synth ou Verilog-2005, carte de registres optionnelle), sous-module épinglé, `sf-project.env`, CI, hook,
+  vérification finale (`lint`, `regs-check`, `sw-lint`, `sim-all`), commit initial optionnel
+- `templates/project/` : squelette versionné (docs, synth Arty Z7-20 avec ports `clk_i`/`rst_n_i`, configs
+  LibreLane sky130/gf180 avec `USE_SLANG`, CHANGELOG, .gitignore) — remplace la copie locale non versionnée
+  `project_template` pour ces profils
+- `templates/module.v` : squelette Verilog-2005
+
 ## [0.5.0] — 2026-10-22
 ### Added
 - `hooks/pre-commit` : `make lint` / `regs-check` / `sw-lint` selon les fichiers indexés ; activation `make hooks`

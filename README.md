@@ -2,7 +2,16 @@
 
 Outils, normes et modèles utilisés par les projets d'IP siliconforge : lint RTL, contrôle de la norme de codage, génération des registres (SystemRDL), conformité du C embarqué. Ils sont appelés par les `Makefile` des projets ; aucune dépendance à un assistant ou à un éditeur. (Le plugin Claude Code siliconforge, facultatif, appelle les mêmes scripts.)
 
-## Intégration dans un projet
+## Créer un projet
+
+```bash
+git clone git@github.com:siliconforge-hw/sf-tools.git ~/workspace/sf-tools     # une fois
+~/workspace/sf-tools/bin/new_project.sh --name ip-timer --ip-id IP003 --regs --dir ~/workspace/projects --commit
+```
+
+Profils `ip` (défaut), `board`, `hls` ; `--asic sky130|gf180|both|none`, `--no-fpga`, `--lang sv|v`, `--regs` (carte SystemRDL générée) ; `--help` pour le reste. Le script crée l'arborescence (modèles de `templates/project/` et `templates/`), épingle sf-tools en sous-module sur son dernier tag, renseigne `sf-project.env`, installe la CI et le hook pre-commit, puis vérifie `lint`, `regs-check`, `sw-lint`, `sim-all`. Profil `soc` (CPU, logiciel) non couvert.
+
+## Intégration dans un projet existant
 
 Chaque projet l'intègre en **sous-module git épinglé sur un tag** :
 
@@ -38,7 +47,8 @@ HDL_STANDARD=SF-HDL-001
 | `bin/sf_config.sh`, `bin/sf_env.sh`, `config/defaults.env` | configuration des chemins d'outils | `make sf-config` |
 | `style/clang-format` | mise en forme C (SF-CS-001 §5.9) | — |
 | `docs/standards/` | **SF-HDL-001** (RTL SystemVerilog) et **SF-CS-001** (C embarqué) : les normes appliquées par ces outils | — |
-| `templates/` | modèles d'un nouveau projet : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt`, `ci.yml` (GitHub Actions) | — |
+| `bin/new_project.sh` | création d'un projet complet et vérifié | — |
+| `templates/` | modèles d'un nouveau projet (`project/` : docs, synth FPGA/ASIC, CHANGELOG, .gitignore) : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt`, `ci.yml` (GitHub Actions), `module.v` (Verilog-2005) | — |
 | `hooks/pre-commit` | hook git : `lint` / `regs-check` / `sw-lint` selon les fichiers indexés | `make hooks` |
 | `ci/setup_tools.sh`, `ci/versions.env`, `ci/requirements-*.txt` | installation épinglée de la chaîne d'outils (CI, nouveau poste Ubuntu 24.04) | — |
 
