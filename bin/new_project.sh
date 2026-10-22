@@ -111,12 +111,13 @@ cp "$T/project/gitignore" .gitignore
 cp "$T/editorconfig" .editorconfig
 cp "$T/ci.yml" .github/workflows/ci.yml
 sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py" > "sim/cocotb/test_$TOP.py"
-if [ "$LANG_RTL" = sv ]; then
+MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
+{
 	sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$IP_ID/g" -e "s/<ip>/$PREFIX/g" \
 		-e "s/<une phrase>/Top de l'IP $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
 		-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
-		"$T/module.sv" > "src/$TOP.sv"
-fi
+		"$T/module.$MOD_EXT" > "src/$TOP.$MOD_EXT"
+}
 if [ $REGS -eq 1 ]; then
 	mkdir -p regs sw; cp "$T/misra_suppressions.txt" sw/misra_suppressions.txt
 	cat >"regs/$PREFIX.rdl" <<EOF
