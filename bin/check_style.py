@@ -5,8 +5,8 @@ Usage : check_style.py [--project DIR] [--force] [--ip <prefixe>] [--tab 4] fich
 
 Avec --project, le contrôle ne s'applique que si le projet déclare la norme :
   DIR/sf-project.env : HDL_STANDARD=SF-HDL-001 et IP_PREFIX=<ip>
-  (repli pour les projets plus anciens : DIR/CLAUDE.md qui mentionne « SF-HDL-001 »
-  et contient la ligne « | Préfixe IP | `uart` | »). --force ignore cette condition.
+  (repli pour les projets plus anciens : DIR/CLAUDE.md avec la ligne « | Norme de codage | SF-HDL-001 … | »
+  et la ligne « | Préfixe IP | `uart` | »). --force ignore cette condition.
 Sortie : une ligne par écart, au format  %Style-HDL-x.y: fichier:ligne: message
 Code de sortie : 0 si aucun écart, 1 sinon.
 
@@ -432,7 +432,9 @@ def project_config(root):
         return False, None
     text = f.read_text(encoding="utf-8", errors="replace")
     m = re.search(r"^\|\s*Préfixe IP\s*\|\s*`?([a-z][a-z0-9_]*)`?\s*\|", text, re.MULTILINE)
-    return "SF-HDL-001" in text, (m.group(1) if m else None)
+    # repli : la ligne du modèle « | Norme de codage | SF-HDL-001 … | », pas une simple mention du nom
+    declared = re.search(r"^\|\s*Norme de codage\s*\|[^|\n]*SF-HDL-001", text, re.MULTILINE) is not None
+    return declared, (m.group(1) if m else None)
 
 
 def main():

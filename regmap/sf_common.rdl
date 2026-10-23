@@ -24,7 +24,7 @@ reg sf_version_t #(longint unsigned P_MAJOR = 0, longint unsigned P_MINOR = 0, l
 
 // --- Champs de IS (SF-REG-001 REG-8, REG-8a) ---
 // Événement : mémorisé par le matériel (hwset), effacé en écrivant 1, jamais perdu lors d'un acquittement
-// simultané d'un autre bit (precedence = hw ; la valeur par défaut sw le perdrait).
+// simultané, d'un autre bit ou du même bit (precedence = hw ; la valeur par défaut sw le perdrait).
 field sf_event_f {
 	sw = rw; onwrite = woclr; hw = r; hwset; precedence = hw;
 };

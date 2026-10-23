@@ -43,7 +43,7 @@ Les règles sont numérotées `REG-<n>` pour pouvoir être citées en revue.
 |---|---|
 | REG-7 | Une IP qui produit des interruptions a deux registres, mêmes noms et mêmes positions de bits pour une même source : **`IE`** (RW, validation) et **`IS`** (état des sources). `irq_o = |(IS & IE)`, de niveau, active haut ; elle peut être registrée (un cycle de retard, sans glitch), ce que la DS précise. |
 | REG-8 | Chaque bit de `IS` est d'un des trois types suivants, indiqué dans la DS : **événement** — mémorisé par le matériel, effacé en écrivant 1 (W1C) ; **niveau** — image instantanée d'une condition (RO), qui retombe quand le logiciel a traité la cause ; **drapeau à acquittement implicite** — mémorisé, RO, effacé par l'action qui le traite (lecture d'une donnée…). Dans tous les cas, `IS` évolue **indépendamment de `IE`** : une source survenue alors que sa validation est à 0 est visible et lève `irq_o` dès la validation. Écrire 0 dans `IS`, ou 1 dans un bit qui n'est pas W1C, est sans effet. |
-| REG-8a | **Un événement n'est jamais perdu** : s'il survient au même cycle qu'une écriture dans `IS` (y compris une écriture qui acquitte un autre bit), le bit est à 1 après ce cycle. En SystemRDL : `precedence = hw` sur tout champ événement — type `sf_event_f` de `sf_common.rdl` ; la valeur par défaut de PeakRDL (`sw`) perd l'événement. Retour d'expérience : IP-001 BUG-RTL-005. |
+| REG-8a | **Un événement n'est jamais perdu** : s'il survient au même cycle qu'une écriture dans `IS` (y compris une écriture qui acquitte un autre bit), le bit est à 1 après ce cycle. En SystemRDL : `precedence = hw` sur tout champ événement — type `sf_event_f` de `sf_common.rdl` ; la valeur par défaut de PeakRDL (`sw`) perd l'événement. Retour d'expérience : IP-001 BUG-RTL-005 (acquittement d'un autre bit) et BUG-RTL-007 (acquittement du même bit : l'événement l'emporte, le bit reste à 1). |
 | REG-9 | La configuration des sources (fronts, niveaux, seuils) va dans des registres `IC_<qualif>` (ex. `IC_RISE`, `IC_FALL`). |
 
 ## 4. Écritures atomiques
@@ -64,7 +64,7 @@ Les règles sont numérotées `REG-<n>` pour pouvoir être citées en revue.
 
 | Règle | Contenu |
 |---|---|
-| REG-14 | Les tests de l'IP vérifient au minimum : valeurs de reset, `ID`/`VERSION`/`CAPS` (et qu'une écriture ne les modifie pas), lecture-écriture des registres RW, W1C de `IS`, **événement simultané à un acquittement d'un autre bit (REG-8a)**, alias SET/CLR/TGL, lecture à 0 d'un offset non décodé et absence de repliement (REG-1). |
+| REG-14 | Les tests de l'IP vérifient au minimum : valeurs de reset, `ID`/`VERSION`/`CAPS` (et qu'une écriture ne les modifie pas), lecture-écriture des registres RW, W1C de `IS`, **événement simultané à un acquittement, d'un autre bit et du même bit (REG-8a)**, alias SET/CLR/TGL, lecture à 0 d'un offset non décodé et absence de repliement (REG-1). |
 
 ## 7. Mise en œuvre SystemRDL
 
@@ -93,4 +93,4 @@ La couche C générée fournit les valeurs attendues (`<IP>_ID_VENDOR_RESET`, `<
 
 | Version | Date | Changements |
 |---|---|---|
-| 1.0 | 2026-10-23 | Création : carte (REG-1 à 3), bloc d'identification `0xF0`–`0xFF` (REG-4 à 6), interruptions `IE`/`IS` avec types de bits et non-perte des événements (REG-7 à 9), alias SET/CLR/TGL (REG-10, 11), nommage (REG-12, 13), tests minimaux (REG-14). Types de bits et REG-8a repris de IP002-DS-v1.0 (brouillon) |
+| 1.0 | 2026-10-23 | (sf-tools 0.7.1 : REG-8a cite aussi BUG-RTL-007 ; REG-14 précise les deux cas d'acquittement.) Création : carte (REG-1 à 3), bloc d'identification `0xF0`–`0xFF` (REG-4 à 6), interruptions `IE`/`IS` avec types de bits et non-perte des événements (REG-7 à 9), alias SET/CLR/TGL (REG-10, 11), nommage (REG-12, 13), tests minimaux (REG-14). Types de bits et REG-8a repris de IP002-DS-v1.0 (brouillon) |

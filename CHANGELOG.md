@@ -1,5 +1,11 @@
 # Changelog — sf-tools
 
+## [0.7.1] — 2026-10-23
+### Fixed
+- `check_style.py` : le repli `CLAUDE.md` n'active la norme que sur la ligne du modèle
+  `| Norme de codage | SF-HDL-001 … |`, plus sur une simple mention du nom (« ne s'applique pas »)
+- SF-REG-001 REG-8a : cite aussi IP-001 BUG-RTL-007 (acquittement du même bit) ; REG-14 précise les deux cas
+
 ## [0.7.0] — 2026-10-23
 ### Added
 - `docs/standards/SF-REG-001-v1.0.md` : convention des registres — carte ≥ 256 octets décodée en entier, bloc
