@@ -1,0 +1,35 @@
+// ============================================================
+// sf_common.rdl — types communs des cartes de registres siliconforge (SF-REG-001)
+// Inclusion : `include "sf_common.rdl"   (chemin ajouté par bin/gen_regs.sh)
+// Bloc d'identification, même place dans toutes les IP :
+//   0xF0 ID       sf_id_t      #(.P_IP_NUM(n))
+//   0xF4 VERSION  sf_version_t #(.P_MAJOR(x), .P_MINOR(y), .P_PATCH(z))
+//   0xF8 CAPS     propre à l'IP (constantes, sw = r, hw = na)
+// ============================================================
+
+reg sf_id_t #(longint unsigned P_IP_NUM = 0) {
+	name = "Identification";
+	desc = "Vendor signature and IP number (SF-REG-001 REG-4). Constant.";
+	field { desc = "IP number: IPnnn gives nnn."; sw = r; hw = na; } IP_NUM[15:0] = P_IP_NUM;
+	field { desc = "Vendor signature, 0x5346 ('SF')."; sw = r; hw = na; } VENDOR[31:16] = 0x5346;
+};
+
+reg sf_version_t #(longint unsigned P_MAJOR = 0, longint unsigned P_MINOR = 0, longint unsigned P_PATCH = 0) {
+	name = "Version";
+	desc = "RTL version MAJOR.MINOR.PATCH (SF-REG-001 REG-4, REG-5). Constant.";
+	field { desc = "RTL patch version."; sw = r; hw = na; } PATCH[7:0] = P_PATCH;
+	field { desc = "RTL minor version."; sw = r; hw = na; } MINOR[15:8] = P_MINOR;
+	field { desc = "RTL major version."; sw = r; hw = na; } MAJOR[23:16] = P_MAJOR;
+};
+
+// --- Champs de IS (SF-REG-001 REG-8, REG-8a) ---
+// Événement : mémorisé par le matériel (hwset), effacé en écrivant 1, jamais perdu lors d'un acquittement
+// simultané d'un autre bit (precedence = hw ; la valeur par défaut sw le perdrait).
+field sf_event_f {
+	sw = rw; onwrite = woclr; hw = r; hwset; precedence = hw;
+};
+
+// Niveau : image instantanée d'une condition matérielle, lecture seule.
+field sf_level_f {
+	sw = r; hw = w;
+};

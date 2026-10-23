@@ -33,6 +33,9 @@ done
 command -v "$CLANG_FORMAT" >/dev/null || { echo "gen_regs.sh : $CLANG_FORMAT introuvable (requis pour une sortie C déterministe)"; exit 1; }
 
 NAME=$(basename "$RDL" .rdl)_regs
+INC="$SF_ROOT/regmap"     # sf_common.rdl (SF-REG-001)
+# REG-5 : IP_NUM de la carte vérifié contre IP_ID de sf-project.env
+[ -f sf-project.env ] && SF_IP_ID="$(sed -n 's/^IP_ID=\([^ #]*\).*/\1/p' sf-project.env)" && export SF_IP_ID
 OUT="."
 if [ $CHECK -eq 1 ]; then
 	OUT=$(mktemp -d)
@@ -40,13 +43,14 @@ if [ $CHECK -eq 1 ]; then
 fi
 mkdir -p "$OUT/src/gen" "$OUT/sw/gen" "$OUT/docs/gen" "$OUT/ipxact"
 
-"$PEAKRDL" regblock "$RDL" -o "$OUT/src/gen/" --cpuif "$CPUIF" --default-reset rst_n \
+"$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --default-reset rst_n \
 	--module-name "$NAME" --package-name "${NAME}_pkg"
-"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" "$RDL" \
-	| "$CLANG_FORMAT" --style="file:$SF_ROOT/style/clang-format" --assume-filename="$NAME"_hw.h \
-	> "$OUT/sw/gen/${NAME}_hw.h"
-"$PEAKRDL" markdown "$RDL" -o "$OUT/docs/gen/$NAME.md"
-"$PEAKRDL" ip-xact "$RDL" -o "$OUT/ipxact/$NAME.xml" --vendor siliconforge --library ip --version "$VERSION"
+"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" -I "$INC" "$RDL" >"$OUT/sw/gen/${NAME}_hw.h.raw"
+"$CLANG_FORMAT" --style="file:$SF_ROOT/style/clang-format" --assume-filename="$NAME"_hw.h \
+	<"$OUT/sw/gen/${NAME}_hw.h.raw" >"$OUT/sw/gen/${NAME}_hw.h"
+rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"
+"$PEAKRDL" markdown "$RDL" -I "$INC" -o "$OUT/docs/gen/$NAME.md"
+"$PEAKRDL" ip-xact "$RDL" -I "$INC" -o "$OUT/ipxact/$NAME.xml" --vendor siliconforge --library ip --version "$VERSION"
 
 FILES=(src/gen/$NAME.sv src/gen/${NAME}_pkg.sv sw/gen/${NAME}_hw.h docs/gen/$NAME.md ipxact/$NAME.xml)
 if [ $CHECK -eq 1 ]; then

@@ -17,6 +17,7 @@ The root addrmap must be named <ip>_regs. Output, following SF-CS-001:
 Supported: flat registers of 32 bits in the root addrmap (no arrays, regfiles or nested addrmaps).
 """
 
+import os
 import sys
 
 from systemrdl import RDLCompiler, RDLCompileError
@@ -307,18 +308,40 @@ class Gen:
         return "\n".join(self.out) + "\n"
 
 
+def check_ip_num(top, ip_id):
+    """SF-REG-001 REG-5 : ID.IP_NUM de la carte == numéro de IP_ID (sf-project.env)."""
+    reg = next((r for r in top.registers() if r.inst_name == "ID"), None)
+    if reg is None or not ip_id:
+        return
+    field = next((f for f in reg.fields() if f.inst_name == "IP_NUM"), None)
+    if field is None:
+        return
+    expected = int(ip_id[2:]) if ip_id.startswith("IP") and ip_id[2:].isdigit() else None
+    if expected is not None and field.get_property("reset") != expected:
+        die(f"ID.IP_NUM = {field.get_property('reset')} mais sf-project.env déclare IP_ID={ip_id} "
+            f"(SF-REG-001 REG-5)")
+
+
 def main():
-    if len(sys.argv) != 2:
-        die("usage: gen_c_hw.py regs/<ip>.rdl")
+    args, incdirs = [], []
+    it = iter(sys.argv[1:])
+    for a in it:
+        if a == "-I":
+            incdirs.append(next(it, ""))
+        else:
+            args.append(a)
+    if len(args) != 1:
+        die("usage: gen_c_hw.py [-I dir]... regs/<ip>.rdl")
     rdlc = RDLCompiler()
     try:
-        rdlc.compile_file(sys.argv[1])
+        rdlc.compile_file(args[0], incl_search_paths=incdirs)
         top = rdlc.elaborate().top
     except RDLCompileError:
         sys.exit(1)
     if not isinstance(top, AddrmapNode):
         die("root component must be an addrmap")
-    sys.stdout.write(Gen(top, sys.argv[1]).run())
+    check_ip_num(top, os.environ.get("SF_IP_ID", ""))
+    sys.stdout.write(Gen(top, args[0]).run())
 
 
 if __name__ == "__main__":
