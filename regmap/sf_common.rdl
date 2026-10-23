@@ -33,3 +33,9 @@ field sf_event_f {
 field sf_level_f {
 	sw = r; hw = w;
 };
+
+// --- Champ de CAPS fixé par un paramètre de synthèse (SF-REG-001 REG-4) ---
+// Lecture seule, sans stockage : l'entrée hwif_in est câblée en constante depuis les paramètres du top.
+field sf_param_f {
+	sw = r; hw = w;
+};

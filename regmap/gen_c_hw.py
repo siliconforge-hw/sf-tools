@@ -21,7 +21,7 @@ import os
 import sys
 
 from systemrdl import RDLCompiler, RDLCompileError
-from systemrdl.node import AddrmapNode, RegNode
+from systemrdl.node import AddrmapNode, RegNode, SignalNode
 from systemrdl.rdltypes import OnReadType, OnWriteType
 
 W1C = (OnWriteType.woclr, OnWriteType.wclr)
@@ -50,6 +50,8 @@ class Gen:
         self.IP = self.ip.upper()
         self.regs = []
         for child in top.children():
+            if isinstance(child, SignalNode):
+                continue        # signal RDL : matériel seulement (reset paramétré…), rien côté C
             if not isinstance(child, RegNode) or child.is_array:
                 die(f"'{child.inst_name}': only flat registers are supported")
             if child.get_property("regwidth") != 32:
@@ -145,7 +147,7 @@ class Gen:
         self.emit("// Fields : position, mask, reset value")
         self.emit("// ------------------------------------------------------------")
         for r in self.regs:
-            reset = 0
+            reset, constant = 0, True
             for f in r.fields():
                 P = f"{self.IP}_{r.inst_name}_{f.inst_name}"
                 mask = ((1 << f.width) - 1) << f.lsb
@@ -155,7 +157,15 @@ class Gen:
                 if isinstance(rv, int):
                     self.emit(f"#define {P}_RESET 0x{rv:X}U")
                     reset |= rv << f.lsb
-            self.emit(f"#define {self.IP}_{r.inst_name}_RESET 0x{reset:08X}U")
+                else:
+                    constant = False
+                    src = "hardware-driven, no reset value" if rv is None else \
+                        f"reset value from hardware signal {rv.inst_name}"
+                    self.emit(f"// {P} : {src}")
+            if constant:
+                self.emit(f"#define {self.IP}_{r.inst_name}_RESET 0x{reset:08X}U")
+            else:
+                self.emit(f"// {self.IP}_{r.inst_name}_RESET : not constant (see fields above)")
             self.emit()
 
     def hooks(self):
