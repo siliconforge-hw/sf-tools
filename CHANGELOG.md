@@ -1,5 +1,17 @@
 # Changelog — sf-tools
 
+## [0.7.0] — 2026-10-23
+### Added
+- `docs/standards/SF-REG-001-v1.0.md` : convention des registres — carte ≥ 256 octets décodée en entier, bloc
+  d'identification `0xF0` ID / `0xF4` VERSION / `0xF8` CAPS, interruptions `IE`/`IS` (événement W1C, niveau,
+  acquittement implicite), non-perte d'un événement pendant un acquittement (REG-8a), alias SET/CLR/TGL
+- `regmap/sf_common.rdl` : `sf_id_t`, `sf_version_t`, `sf_event_f` (`precedence = hw`), `sf_level_f`
+- `gen_regs.sh` : chemin d'inclusion `regmap/` ; contrôle REG-5 (`ID.IP_NUM` = `IP_ID` de `sf-project.env`),
+  exécuté avant toute écriture
+### Note
+- Vérifié par simulation : avec la priorité PeakRDL par défaut (`sw`), un événement simultané à l'acquittement
+  d'un autre bit de `IS` est perdu ; `sf_event_f` le conserve
+
 ## [0.6.0] — 2026-10-22
 ### Added
 - `bin/new_project.sh` : création d'un projet sans assistant (profils ip/board/hls, cibles FPGA/ASIC,

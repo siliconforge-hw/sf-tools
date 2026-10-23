@@ -43,12 +43,13 @@ if [ $CHECK -eq 1 ]; then
 fi
 mkdir -p "$OUT/src/gen" "$OUT/sw/gen" "$OUT/docs/gen" "$OUT/ipxact"
 
-"$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --default-reset rst_n \
-	--module-name "$NAME" --package-name "${NAME}_pkg"
-"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" -I "$INC" "$RDL" >"$OUT/sw/gen/${NAME}_hw.h.raw"
+# couche C d'abord : elle porte les contrôles (REG-5) — rien n'est écrit si la carte est incohérente
+"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" -I "$INC" "$RDL" >"$OUT/sw/gen/${NAME}_hw.h.raw" || { rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"; exit 1; }
 "$CLANG_FORMAT" --style="file:$SF_ROOT/style/clang-format" --assume-filename="$NAME"_hw.h \
 	<"$OUT/sw/gen/${NAME}_hw.h.raw" >"$OUT/sw/gen/${NAME}_hw.h"
 rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"
+"$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --default-reset rst_n \
+	--module-name "$NAME" --package-name "${NAME}_pkg"
 "$PEAKRDL" markdown "$RDL" -I "$INC" -o "$OUT/docs/gen/$NAME.md"
 "$PEAKRDL" ip-xact "$RDL" -I "$INC" -o "$OUT/ipxact/$NAME.xml" --vendor siliconforge --library ip --version "$VERSION"
 

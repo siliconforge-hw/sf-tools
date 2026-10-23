@@ -46,7 +46,8 @@ HDL_STANDARD=SF-HDL-001
 | `bin/check_tools.sh` | versions des outils EDA installés | `make check-env` |
 | `bin/sf_config.sh`, `bin/sf_env.sh`, `config/defaults.env` | configuration des chemins d'outils | `make sf-config` |
 | `style/clang-format` | mise en forme C (SF-CS-001 §5.9) | — |
-| `docs/standards/` | **SF-HDL-001** (RTL SystemVerilog) et **SF-CS-001** (C embarqué) : les normes appliquées par ces outils | — |
+| `docs/standards/` | **SF-HDL-001** (RTL SystemVerilog), **SF-CS-001** (C embarqué), **SF-REG-001** (convention des registres) : les normes appliquées par ces outils | — |
+| `regmap/sf_common.rdl` | types SystemRDL communs (SF-REG-001) : `sf_id_t`, `sf_version_t` (bloc `0xF0`), champs `sf_event_f` / `sf_level_f` de `IS` ; inclus automatiquement par `gen_regs.sh` | — |
 | `bin/new_project.sh` | création d'un projet complet et vérifié | — |
 | `templates/` | modèles d'un nouveau projet (`project/` : docs, synth FPGA/ASIC, CHANGELOG, .gitignore) : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt`, `ci.yml` (GitHub Actions), `module.v` (Verilog-2005) | — |
 | `hooks/pre-commit` | hook git : `lint` / `regs-check` / `sw-lint` selon les fichiers indexés | `make hooks` |
