@@ -1,5 +1,19 @@
 # Changelog — sf-tools
 
+## [0.9.0] — 2026-10-23
+### Added
+- SF-REG-001 v1.2 : REG-4 — champs de `CAPS` fixés par un paramètre de synthèse (`sf_param_f`, `sw = r;
+  hw = w`, câblés en constante depuis le top) ; §7 — reset dépendant d'un paramètre (`signal` RDL +
+  `<champ>->reset = <signal>`, entrée `hwif_in` chargée au reset, vérifié avec PeakRDL-regblock 1.3)
+- `sf_common.rdl` : `sf_param_f`
+### Changed
+- SF-REG-001 REG-9 : `IC_<qualif>` réservé à la configuration propre aux sources ; seuils et timeouts gardent
+  un nom fonctionnel
+- Couche C : un `signal` RDL est ignoré (matériel seulement) ; `<IP>_<REG>_RESET` n'est produit que si tous les
+  champs ont un reset constant (sinon commentaire explicite). **Effet** : disparition de macros `_RESET` qui
+  étaient fausses pour les registres pilotés par le matériel (ex. `STATUS`) — un driver qui les utilisait doit
+  être corrigé
+
 ## [0.8.0] — 2026-10-23
 ### Changed
 - SF-REG-001 v1.1 : REG-1 impose un port d'adresse de 12 bits (fenêtre de 4 Ko) décodé sur toute sa largeur,
