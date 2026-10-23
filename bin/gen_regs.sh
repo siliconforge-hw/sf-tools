@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Génère, depuis une carte SystemRDL, le banc de registres SV, la couche C SF-CS-001, la doc Markdown et l'IP-XACT.
-# Usage : gen_regs.sh [--check] [--cpuif axi4-lite-flat] [--version 1.0] regs/<ip>.rdl
+# Usage : gen_regs.sh [--check] [--cpuif axi4-lite-flat] [--addr-width 12] [--version 1.0] regs/<ip>.rdl
 #   --check : régénère dans un dossier temporaire et compare aux fichiers du projet (rien n'est écrit)
 # À lancer depuis la racine du projet. Le nom de l'addrmap racine doit être <ip>_regs (HDL-2.3).
 # Sorties (SF-HDL-001 HDL-1.6, jamais éditées à la main) :
@@ -15,6 +15,7 @@ source "$SF_ROOT/bin/sf_env.sh"   # PEAKRDL, CLANG_FORMAT
 PYTHON="$(dirname "$PEAKRDL")/python"
 CHECK=0
 CPUIF="axi4-lite-flat"
+ADDR_WIDTH=12             # SF-REG-001 REG-1 : fenêtre de 4 Ko décodée en entier
 VERSION="1.0"
 RDL=""
 
@@ -22,6 +23,7 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 		--check) CHECK=1; shift ;;
 		--cpuif) CPUIF="$2"; shift 2 ;;
+		--addr-width) ADDR_WIDTH="$2"; shift 2 ;;
 		--version) VERSION="$2"; shift 2 ;;
 		-h|--help) sed -n '2,11p' "$0"; exit 0 ;;
 		*) RDL="$1"; shift ;;
@@ -44,11 +46,11 @@ fi
 mkdir -p "$OUT/src/gen" "$OUT/sw/gen" "$OUT/docs/gen" "$OUT/ipxact"
 
 # couche C d'abord : elle porte les contrôles (REG-5) — rien n'est écrit si la carte est incohérente
-"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" -I "$INC" "$RDL" >"$OUT/sw/gen/${NAME}_hw.h.raw" || { rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"; exit 1; }
+"$PYTHON" -I "$SF_ROOT/regmap/gen_c_hw.py" -I "$INC" --addr-width "$ADDR_WIDTH" "$RDL" >"$OUT/sw/gen/${NAME}_hw.h.raw" || { rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"; exit 1; }
 "$CLANG_FORMAT" --style="file:$SF_ROOT/style/clang-format" --assume-filename="$NAME"_hw.h \
 	<"$OUT/sw/gen/${NAME}_hw.h.raw" >"$OUT/sw/gen/${NAME}_hw.h"
 rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"
-"$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --default-reset rst_n \
+"$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --addr-width "$ADDR_WIDTH" --default-reset rst_n \
 	--module-name "$NAME" --package-name "${NAME}_pkg"
 "$PEAKRDL" markdown "$RDL" -I "$INC" -o "$OUT/docs/gen/$NAME.md"
 "$PEAKRDL" ip-xact "$RDL" -I "$INC" -o "$OUT/ipxact/$NAME.xml" --vendor siliconforge --library ip --version "$VERSION"
@@ -69,5 +71,5 @@ if [ $CHECK -eq 1 ]; then
 	echo "REGS : à jour ($RDL)"
 else
 	printf '   %s\n' "${FILES[@]}"
-	echo "REGS : générés depuis $RDL (cpuif $CPUIF, IP-XACT siliconforge:ip:$NAME:$VERSION)"
+	echo "REGS : générés depuis $RDL (cpuif $CPUIF, adresse $ADDR_WIDTH bits, IP-XACT siliconforge:ip:$NAME:$VERSION)"
 fi

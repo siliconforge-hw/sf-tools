@@ -57,6 +57,7 @@ class Gen:
             self.regs.append(child)
         self.regs.sort(key=lambda r: r.address_offset)
         self.out = []
+        self.addr_width = 12
 
     def emit(self, text=""):
         self.out.append(text)
@@ -127,6 +128,7 @@ class Gen:
             self.emit(f"#define {self.IP}_{r.inst_name}_OFFSET 0x{r.address_offset:02X}U")
         self.emit()
         self.emit(f"#define {self.IP}_ADDR_SPAN 0x{self.span:02X}U // sizeof({self.ip}_regs_t)")
+        self.emit(f"#define {self.IP}_ADDR_WINDOW 0x{1 << self.addr_width:X}U // decoded window (SF-REG-001 REG-1)")
         self.emit()
         self.emit("// MISRA deviation DP-05 : token pasting (C99 has no _Static_assert)")
         self.emit(f"#define {self.IP}_STATIC_ASSERT(cond, name) "
@@ -323,11 +325,13 @@ def check_ip_num(top, ip_id):
 
 
 def main():
-    args, incdirs = [], []
+    args, incdirs, addr_width = [], [], 12
     it = iter(sys.argv[1:])
     for a in it:
         if a == "-I":
             incdirs.append(next(it, ""))
+        elif a == "--addr-width":
+            addr_width = int(next(it, "12"))
         else:
             args.append(a)
     if len(args) != 1:
@@ -341,7 +345,11 @@ def main():
     if not isinstance(top, AddrmapNode):
         die("root component must be an addrmap")
     check_ip_num(top, os.environ.get("SF_IP_ID", ""))
-    sys.stdout.write(Gen(top, args[0]).run())
+    gen = Gen(top, args[0])
+    gen.addr_width = addr_width
+    if gen.regs and gen.regs[-1].address_offset + 4 > (1 << addr_width):
+        die(f"la carte dépasse la fenêtre de {1 << addr_width} octets (--addr-width {addr_width})")
+    sys.stdout.write(gen.run())
 
 
 if __name__ == "__main__":

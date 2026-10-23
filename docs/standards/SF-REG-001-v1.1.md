@@ -1,4 +1,4 @@
-# SF-REG-001-v1.0 — Convention des registres des IP siliconforge
+# SF-REG-001-v1.1 — Convention des registres des IP siliconforge
 
 | Champ      | Valeur                                            |
 |------------|---------------------------------------------------|
@@ -18,8 +18,8 @@ Les règles sont numérotées `REG-<n>` pour pouvoir être citées en revue.
 
 | Règle | Contenu |
 |---|---|
-| REG-1 | Registres de 32 bits, alignés sur 4 octets, accès 32 bits (SF-CS-001 SF-032). Espace d'adresses d'au moins **256 octets** (offset sur 8 bits), **décodé en entier** : pas de répétition de la fenêtre (un repliement ferait apparaître le bloc d'identification à plusieurs adresses et masquerait les erreurs d'adressage du logiciel). |
-| REG-2 | Registres fonctionnels à partir de `0x00`, croissants. **`0xF0`–`0xFF` sont réservés au bloc d'identification** (§2), à la même place dans toutes les IP. |
+| REG-1 | Registres de 32 bits, alignés sur 4 octets, accès 32 bits (SF-CS-001 SF-032). **Port d'adresse de 12 bits : fenêtre de 4 Ko (`0x000`–`0xFFF`), décodée sur toute sa largeur** (`addr[11:2]`). Une adresse sans registre — y compris au-delà de `0x0FF` — est lue à 0, l'écriture est ignorée, la réponse est `OKAY` : la fenêtre ne se répète jamais. Motif : le segment attribué à un esclave AXI dans la carte d'adresses d'un système est en général de 4 Ko (minimum de l'éditeur d'adresses Vivado) ; une IP qui ne décoderait que 8 bits y apparaîtrait 16 fois, et un logiciel qui se trompe d'adresse modifierait un vrai registre au lieu de lire 0. Une IP qui a besoin de plus de 4 Ko élargit son port et le documente dans sa DS. |
+| REG-2 | Registres fonctionnels à partir de `0x000`, croissants, jusqu'à `0x0EC` (60 registres). **`0x0F0`–`0x0FF` sont réservés au bloc d'identification** (§2), à la même place dans toutes les IP. Au-delà de 60 registres, ou pour un tableau (canaux, coefficients, fenêtre mémoire), les registres supplémentaires vont à partir de `0x100`. |
 | REG-3 | Bits réservés et offsets non décodés : lus à 0, écritures ignorées, réponse `OKAY`. Un nouveau registre se place dans un offset libre : une IP qui en ajoute reste compatible avec ses anciens drivers. |
 
 ## 2. Bloc d'identification
@@ -64,7 +64,7 @@ Les règles sont numérotées `REG-<n>` pour pouvoir être citées en revue.
 
 | Règle | Contenu |
 |---|---|
-| REG-14 | Les tests de l'IP vérifient au minimum : valeurs de reset, `ID`/`VERSION`/`CAPS` (et qu'une écriture ne les modifie pas), lecture-écriture des registres RW, W1C de `IS`, **événement simultané à un acquittement, d'un autre bit et du même bit (REG-8a)**, alias SET/CLR/TGL, lecture à 0 d'un offset non décodé et absence de repliement (REG-1). |
+| REG-14 | Les tests de l'IP vérifient au minimum : valeurs de reset, `ID`/`VERSION`/`CAPS` (et qu'une écriture ne les modifie pas), lecture-écriture des registres RW, W1C de `IS`, **événement simultané à un acquittement, d'un autre bit et du même bit (REG-8a)**, alias SET/CLR/TGL, lecture à 0 d'un offset non décodé et absence de repliement : une lecture en `0x1F0` (au-delà de `0x0FF`) renvoie 0 et non `ID` (REG-1). |
 
 ## 7. Mise en œuvre SystemRDL
 
@@ -87,10 +87,11 @@ addrmap uart_regs {
 };
 ```
 
-La couche C générée fournit les valeurs attendues (`<IP>_ID_VENDOR_RESET`, `<IP>_ID_IP_NUM_RESET`) pour le contrôle REG-6.
+La couche C générée fournit les valeurs attendues (`<IP>_ID_VENDOR_RESET`, `<IP>_ID_IP_NUM_RESET`) pour le contrôle REG-6, et la taille de la fenêtre décodée (`<IP>_ADDR_WINDOW`, `0x1000U`). `gen_regs.sh` génère un port de 12 bits (`--addr-width`, défaut 12).
 
 ## 8. Historique
 
 | Version | Date | Changements |
 |---|---|---|
 | 1.0 | 2026-10-23 | (sf-tools 0.7.1 : REG-8a cite aussi BUG-RTL-007 ; REG-14 précise les deux cas d'acquittement.) Création : carte (REG-1 à 3), bloc d'identification `0xF0`–`0xFF` (REG-4 à 6), interruptions `IE`/`IS` avec types de bits et non-perte des événements (REG-7 à 9), alias SET/CLR/TGL (REG-10, 11), nommage (REG-12, 13), tests minimaux (REG-14). Types de bits et REG-8a repris de IP002-DS-v1.0 (brouillon) |
+| 1.1 | 2026-10-23 | REG-1 : port d'adresse de 12 bits (4 Ko) décodé sur toute sa largeur, pas de repliement dans le segment AXI ; REG-2 : 60 registres fonctionnels, extension à partir de `0x100` ; REG-14 : test de non-repliement en `0x1F0` |
