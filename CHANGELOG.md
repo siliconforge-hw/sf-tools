@@ -1,5 +1,16 @@
 # Changelog — sf-tools
 
+## [0.8.0] — 2026-10-23
+### Changed
+- SF-REG-001 v1.1 : REG-1 impose un port d'adresse de 12 bits (fenêtre de 4 Ko) décodé sur toute sa largeur,
+  sans repliement dans le segment AXI ; REG-2 : 60 registres fonctionnels (`0x000`–`0x0EC`), extension à
+  partir de `0x100` ; REG-14 : test de non-repliement
+- `gen_regs.sh` : `--addr-width` (défaut 12) pour regblock et la couche C (`<IP>_ADDR_WINDOW`) ; refus d'une
+  carte qui dépasse la fenêtre. **Effet sur un projet existant** : ports `s_axil_*addr` de 12 bits après
+  `make regs` (`regs-check` échoue tant que ce n'est pas fait ; adapter les enveloppes de test)
+### Note
+- Vérifié par simulation : décodage 12 bits, `0x1F0` lu à 0 ; avec 8 bits, `0x1F0` renvoie `ID` (repliement)
+
 ## [0.7.1] — 2026-10-23
 ### Fixed
 - `check_style.py` : le repli `CLAUDE.md` n'active la norme que sur la ligne du modèle
