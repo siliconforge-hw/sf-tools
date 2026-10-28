@@ -1,5 +1,12 @@
 # Changelog — sf-tools
 
+## [0.11.0] — 2026-10-28
+### Added
+- `new_project.sh --into DIR` : initialise un dossier existant (spec déjà écrite, dépôt avec ou sans commit) ;
+  aucun fichier existant n'est écrasé (créés / conservés listés à la fin), `.gitignore` complété des lignes
+  manquantes, `--name` = nom du dossier, `--commit` ne commite que les fichiers créés ; refus si `tools/sf`
+  existe déjà
+
 ## [0.10.0] — 2026-10-28
 ### Added
 - Catégories de projets : `config/categories.conf` (IP, SYS, DEM, EXP — famille, profil par défaut, registres

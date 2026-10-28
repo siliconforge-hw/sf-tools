@@ -7,7 +7,8 @@ Outils, normes et modèles utilisés par les projets d'IP siliconforge : lint RT
 ```bash
 git clone git@github.com:siliconforge-hw/sf-tools.git ~/workspace/sf-tools     # une fois
 ~/workspace/sf-tools/bin/new_project.sh --name ip-timer --id IP003 --regs --dir ~/workspace/projects --commit
-~/workspace/sf-tools/bin/new_project.sh --name rgb-grayscale-rtl-benchmark --id EXP001 --prefix rgb2gray --dir ~/workspace/projects
+# dossier existant (spec déjà écrite) : rien n'est écrasé, --commit ne prend que les fichiers créés
+~/workspace/sf-tools/bin/new_project.sh --into ~/workspace/projects/rgb-grayscale-rtl-benchmark --id EXP001 --prefix rgb2gray
 ```
 
 La **catégorie** du projet vient de la famille de son identifiant (`config/categories.conf` : `IP` IP réutilisable, `SYS` système, `DEM` démonstrateur, `EXP` expérience ; numéros attribués dans le registre de la méthode) ; elle fixe le profil par défaut, l'autorisation d'une carte de registres et des dossiers propres (`python/` pour une EXP). Profils `ip`, `board`, `hls` ; `--asic sky130|gf180|both|none`, `--no-fpga`, `--lang sv|v`, `--regs` (carte SystemRDL générée) ; `--help` pour le reste. Le script crée l'arborescence (modèles de `templates/project/` et `templates/`), épingle sf-tools en sous-module sur son dernier tag, renseigne `sf-project.env`, installe la CI et le hook pre-commit, puis vérifie `lint`, `regs-check`, `sw-lint`, `sim-all`. Profil `soc` (CPU, logiciel) non couvert.
