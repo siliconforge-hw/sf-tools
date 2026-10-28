@@ -167,7 +167,7 @@ put "$T/ci.yml" .github/workflows/ci.yml || true
 put_text "sim/cocotb/test_$TOP.py" < <(sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py") || true
 MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
 DS_REF="$ID-DS-v1.0 (à écrire)" # DS déjà écrite (--into) : sa dernière version, section à préciser
-DS_FILE="$(ls docs/"$ID"-DS-v*.md 2>/dev/null | sort -V | tail -1)"
+DS_FILE="$(ls docs/"$ID"-DS-v*.md 2>/dev/null | sort -V | tail -1 || true)"
 [ -n "$DS_FILE" ] && DS_REF="$(basename "$DS_FILE" .md) §(à préciser)"
 put_text "src/$TOP.$MOD_EXT" < <(sed -e "s/<IPxxx>-DS-v1.0 §<x>/$DS_REF/" -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
 	-e "s/<une phrase>/Top de $ID $PREFIX (squelette, à remplacer en phase RTL)/" \
