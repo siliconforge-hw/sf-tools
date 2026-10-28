@@ -106,7 +106,7 @@ put() { # source destination [fill] : copie si la destination est absente
 	[ "${3:-}" = fill ] && fill "$dst"
 	return 0
 }
-put_text() { # destination : contenu sur l'entrée standard
+put_text() { # destination : contenu sur l'entrée standard (appeler avec < <(…), jamais en fin de tube : CREATED serait perdu)
 	local dst="$1" tmp; tmp="$(mktemp)"; cat >"$tmp"
 	if [ -e "$dst" ]; then KEPT+=("$dst"); rm -f "$tmp"; return 1; fi
 	mkdir -p "$(dirname "$dst")"; mv "$tmp" "$dst"; CREATED+=("$dst"); return 0
@@ -163,12 +163,12 @@ else
 fi
 put "$T/editorconfig" .editorconfig || true
 put "$T/ci.yml" .github/workflows/ci.yml || true
-sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py" | put_text "sim/cocotb/test_$TOP.py" || true
+put_text "sim/cocotb/test_$TOP.py" < <(sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py") || true
 MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
-sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
+put_text "src/$TOP.$MOD_EXT" < <(sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
 	-e "s/<une phrase>/Top de $ID $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
 	-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
-	"$T/module.$MOD_EXT" | put_text "src/$TOP.$MOD_EXT" || true
+	"$T/module.$MOD_EXT") || true
 if [ $REGS -eq 1 ]; then
 	put "$T/misra_suppressions.txt" sw/misra_suppressions.txt || true
 	NUM=$((10#${ID#$FAMILY}))
@@ -225,7 +225,8 @@ COMMIT_MSG="chore: init project from template (profil $PROFILE)"
 [ -n "$INTO" ] && COMMIT_MSG="chore: add sf-tools project infrastructure (profil $PROFILE)"
 if [ $COMMIT -eq 1 ]; then
 	if [ -n "$INTO" ]; then # seulement ce que le script a créé : jamais les fichiers du projet en cours
-		files=(.gitmodules tools/sf); for f in "${CREATED[@]}"; do files+=("${f%% (*}"); done
+		files=(.gitmodules tools/sf) # sans les chemins ignorés (build/, runs/…), comme git add -A
+		for f in "${CREATED[@]}"; do f="${f%% (*}"; git check-ignore -q -- "$f" || files+=("$f"); done
 		git add -- "${files[@]}"
 	else
 		git add -A
