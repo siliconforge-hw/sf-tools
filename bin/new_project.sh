@@ -71,7 +71,7 @@ FAMILY="${BASH_REMATCH[1]}"
 CAT_LINE="$(grep -E "^[[:space:]]*$FAMILY[[:space:]]*\|" "$CAT_FILE" || true)"
 [ -n "$CAT_LINE" ] || die "--id : famille $FAMILY inconnue (connues : $FAMILIES; ajout : config/categories.conf)"
 catf() { echo "$CAT_LINE" | cut -d'|' -f"$1" | sed 's/^ *//; s/ *$//'; }
-CATEGORY="$(catf 2)"; PROFILE="${PROFILE:-$(catf 3)}"; REGS_ALLOWED="$(catf 4)"; EXTRA_DIRS="$(catf 5)"
+CATEGORY="$(catf 2)"; PROFILE="${PROFILE:-$(catf 3)}"; REGS_ALLOWED="$(catf 4)"; EXTRA_DIRS="$(catf 5)"; CAT_LABEL="$(catf 6)"
 [ $REGS -eq 0 ] || [ "$REGS_ALLOWED" = allowed ] || die "--regs : pas de carte de registres pour la catégorie $CATEGORY"
 PREFIX="${PREFIX:-$(echo "$NAME" | sed -E 's/^(ip|sys|dem|exp)-//' | tr '-' '_')}"
 [[ "$PREFIX" =~ ^[a-z][a-z0-9_]*$ ]] || die "--prefix : snake_case ($PREFIX)"
@@ -129,7 +129,7 @@ T=tools/sf/templates
 
 # --- Arborescence ---
 step "arborescence (catégorie $CATEGORY, profil $PROFILE, FPGA $([ $FPGA -eq 1 ] && echo oui || echo non), ASIC $ASIC, $LANG_RTL)"
-keep_dir docs/specs; keep_dir docs/diagrams
+keep_dir docs/diagrams
 mkdir -p src sim/cocotb .github/workflows; keep_dir build
 if [ $FPGA -eq 1 ]; then
 	while IFS= read -r f; do put "$T/project/$f" "$f" || true; done < <(cd "$T/project" && find synth/fpga -type f)
@@ -150,7 +150,8 @@ for d in ${EXTRA_DIRS//-/}; do keep_dir "$d"; done
 step "fichiers"
 put "$T/sf-project.env" sf-project.env fill && sed -i "s/^HDL_STANDARD=.*/HDL_STANDARD=$HDL_STANDARD/" sf-project.env
 put "$T/Makefile.ip" Makefile || true
-put "$T/README.ip.md" README.md fill && sed -i "s/<résumé>/$ID $PREFIX/" README.md
+PHASE=SPEC; [ -n "$INTO" ] && PHASE="à préciser"
+put "$T/README.ip.md" README.md fill && sed -i -e "s|<résumé>|$CAT_LABEL, préfixe \`$PREFIX\`|" -e "s|<phase>|$PHASE|" README.md
 put "$T/project/CHANGELOG.md" CHANGELOG.md fill || true
 if [ -e .gitignore ]; then # complété : lignes du modèle absentes ajoutées, rien n'est retiré
 	added=0
@@ -165,8 +166,11 @@ put "$T/editorconfig" .editorconfig || true
 put "$T/ci.yml" .github/workflows/ci.yml || true
 put_text "sim/cocotb/test_$TOP.py" < <(sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py") || true
 MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
-put_text "src/$TOP.$MOD_EXT" < <(sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
-	-e "s/<une phrase>/Top de $ID $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
+DS_REF="$ID-DS-v1.0 (à écrire)" # DS déjà écrite (--into) : sa dernière version, section à préciser
+DS_FILE="$(ls docs/"$ID"-DS-v*.md 2>/dev/null | sort -V | tail -1)"
+[ -n "$DS_FILE" ] && DS_REF="$(basename "$DS_FILE" .md) §(à préciser)"
+put_text "src/$TOP.$MOD_EXT" < <(sed -e "s/<IPxxx>-DS-v1.0 §<x>/$DS_REF/" -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
+	-e "s/<une phrase>/Top de $ID $PREFIX (squelette, à remplacer en phase RTL)/" \
 	-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
 	"$T/module.$MOD_EXT") || true
 if [ $REGS -eq 1 ]; then

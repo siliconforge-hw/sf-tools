@@ -1,6 +1,6 @@
 # <projet>
 
-> <IPxxx> — <résumé>. Phase en cours : 1 — SPEC.
+> <IPxxx> — <résumé>. Phase en cours : <phase>.
 
 ## Description
 
