@@ -1,5 +1,12 @@
 # Changelog — sf-tools
 
+## [0.11.1] — 2026-10-28
+### Fixed
+- README généré : identifiant suivi du libellé de la catégorie (plus « EXP001 — EXP001 rgb2gray »), phase
+  `SPEC` sans numéro du cycle IP, « à préciser » avec `--into`
+- Squelette RTL : avec `--into`, l'en-tête cite la DS existante (`<ID>-DS-v<x.y> §(à préciser)`)
+- Plus de `docs/specs/` : les documents vont directement dans `docs/` (nomenclature de la méthode)
+
 ## [0.11.0] — 2026-10-28
 ### Added
 - `new_project.sh --into DIR` : initialise un dossier existant (spec déjà écrite, dépôt avec ou sans commit) ;
