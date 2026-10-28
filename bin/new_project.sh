@@ -15,6 +15,9 @@
 #   --lang L            sv (profil SV-synth, norme SF-HDL-001) | v (Verilog-2005, sans norme)  (défaut : sv)
 #   --regs              ajoute une carte de registres SystemRDL (regs/<prefix>.rdl) et la génère
 #   --dir D             dossier parent                                                   (défaut : .)
+#   --into DIR          initialiser un dossier EXISTANT (spec déjà écrite…) : aucun fichier existant n'est
+#                       écrasé (créés / conservés listés à la fin), .gitignore complété, --name = nom du dossier,
+#                       --commit ne commite que les fichiers créés
 #   --sf-url URL        dépôt sf-tools du sous-module   (défaut : git@github.com:siliconforge-hw/sf-tools.git)
 #   --sf-ref REF        tag/branche de sf-tools à épingler       (défaut : dernier tag de ce sf-tools)
 #   --no-relative-url   garder --sf-url tel quel dans .gitmodules (défaut : ../sf-tools, même organisation)
@@ -25,7 +28,7 @@ set -euo pipefail
 
 SELF_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NAME=""; ID=""; PREFIX=""; TOP=""; PROFILE=""; ASIC=""; FPGA=1; LANG_RTL=sv; REGS=0
-PARENT="."; SF_URL="git@github.com:siliconforge-hw/sf-tools.git"; SF_REF=""; RELATIVE=1; CHECK=1; COMMIT=0
+INTO=""; PARENT="."; SF_URL="git@github.com:siliconforge-hw/sf-tools.git"; SF_REF=""; RELATIVE=1; CHECK=1; COMMIT=0
 
 die() { echo "new_project.sh : $*" >&2; exit 1; }
 while [ $# -gt 0 ]; do
@@ -45,12 +48,19 @@ while [ $# -gt 0 ]; do
 		--no-relative-url) RELATIVE=0; shift ;;
 		--no-check) CHECK=0; shift ;;
 		--commit) COMMIT=1; shift ;;
-		-h|--help) sed -n '2,26p' "$0"; exit 0 ;;
+		--into) INTO="$2"; shift 2 ;;
+		-h|--help) sed -n '2,30p' "$0"; exit 0 ;;
 		*) die "option inconnue : $1 (--help)" ;;
 	esac
 done
 
 # --- Validation ---
+if [ -n "$INTO" ]; then
+	[ -d "$INTO" ] || die "--into : $INTO n'existe pas"
+	INTO="$(cd "$INTO" && pwd)"
+	NAME="${NAME:-$(basename "$INTO")}"
+	[ ! -e "$INTO/tools/sf" ] || die "--into : $INTO/tools/sf existe déjà (projet déjà initialisé)"
+fi
 [ -n "$NAME" ] || die "--name requis"
 [[ "$NAME" =~ ^[a-z][a-z0-9-]*$ ]] || die "--name : minuscules, chiffres, tirets ($NAME)"
 # Catégorie : famille de l'identifiant, lue dans config/categories.conf
@@ -75,8 +85,12 @@ case "$LANG_RTL" in sv) HDL_STANDARD=SF-HDL-001 ;; v) HDL_STANDARD="" ;; *) die 
 if [ -z "$SF_REF" ]; then
 	SF_REF="$(git -C "$SELF_ROOT" describe --tags --abbrev=0 2>/dev/null)" || die "--sf-ref requis (pas de tag dans $SELF_ROOT)"
 fi
-DEST="$(cd "$PARENT" && pwd)/$NAME"
-[ ! -e "$DEST" ] || die "$DEST existe déjà"
+if [ -n "$INTO" ]; then
+	DEST="$INTO"
+else
+	DEST="$(cd "$PARENT" && pwd)/$NAME"
+	[ ! -e "$DEST" ] || die "$DEST existe déjà (initialiser un dossier existant : --into $DEST)"
+fi
 
 step() { echo "== $*"; }
 fill() { # fichier : remplace les champs du projet
@@ -84,10 +98,27 @@ fill() { # fichier : remplace les champs du projet
 		-e "s/<profil>/$PROFILE/g" "$1"
 }
 
+CREATED=(); KEPT=()
+put() { # source destination [fill] : copie si la destination est absente
+	local src="$1" dst="$2"
+	if [ -e "$dst" ]; then KEPT+=("$dst"); return 1; fi
+	mkdir -p "$(dirname "$dst")"; cp "$src" "$dst"; CREATED+=("$dst")
+	[ "${3:-}" = fill ] && fill "$dst"
+	return 0
+}
+put_text() { # destination : contenu sur l'entrée standard
+	local dst="$1" tmp; tmp="$(mktemp)"; cat >"$tmp"
+	if [ -e "$dst" ]; then KEPT+=("$dst"); rm -f "$tmp"; return 1; fi
+	mkdir -p "$(dirname "$dst")"; mv "$tmp" "$dst"; CREATED+=("$dst"); return 0
+}
+keep_dir() { # dossier : .gitkeep seulement si le dossier est absent ou vide
+	mkdir -p "$1"; [ -n "$(ls -A "$1")" ] || { touch "$1/.gitkeep"; CREATED+=("$1/.gitkeep"); }
+}
+
 # --- Dépôt et sous-module sf-tools (les modèles viennent de la version épinglée) ---
-step "dépôt $DEST"
+step "dépôt $DEST$([ -n "$INTO" ] && echo ' (dossier existant)')"
 mkdir -p "$DEST"; cd "$DEST"
-git init -q -b main
+[ -d .git ] || git init -q -b main
 GITC=(); [[ "$SF_URL" == /* || "$SF_URL" == ./* || "$SF_URL" == ../* || "$SF_URL" == file://* ]] && GITC=(-c protocol.file.allow=always)
 step "sous-module tools/sf ← $SF_URL ($SF_REF)"
 git "${GITC[@]}" submodule add -q "$SF_URL" tools/sf
@@ -98,42 +129,50 @@ T=tools/sf/templates
 
 # --- Arborescence ---
 step "arborescence (catégorie $CATEGORY, profil $PROFILE, FPGA $([ $FPGA -eq 1 ] && echo oui || echo non), ASIC $ASIC, $LANG_RTL)"
-cp -r "$T/project/docs" .
-mkdir -p src sim/cocotb build .github/workflows; touch build/.gitkeep
-if [ $FPGA -eq 1 ]; then mkdir -p synth/fpga; cp -r "$T/project/synth/fpga/arty_z7_20" synth/fpga/; fi
+keep_dir docs/specs; keep_dir docs/diagrams
+mkdir -p src sim/cocotb .github/workflows; keep_dir build
+if [ $FPGA -eq 1 ]; then
+	while IFS= read -r f; do put "$T/project/$f" "$f" || true; done < <(cd "$T/project" && find synth/fpga -type f)
+fi
 for pdk in sky130 gf180; do
 	if [ "$ASIC" = "$pdk" ] || [ "$ASIC" = both ]; then
-		mkdir -p "synth/asic/$pdk/runs"; touch "synth/asic/$pdk/runs/.gitkeep"
-		cp "$T/project/synth/asic/$pdk/config.json" "synth/asic/$pdk/"; fill "synth/asic/$pdk/config.json"
-		[ "$LANG_RTL" = v ] && sed -i -e 's|\["dir::../../../src/\*\*/\*.sv"\]|["dir::../../../src/**/*.v"]|' \
-			-e '/"USE_SLANG": true,/d' "synth/asic/$pdk/config.json"
+		keep_dir "synth/asic/$pdk/runs"
+		if put "$T/project/synth/asic/$pdk/config.json" "synth/asic/$pdk/config.json" fill && [ "$LANG_RTL" = v ]; then
+			sed -i -e 's|\["dir::../../../src/\*\*/\*.sv"\]|["dir::../../../src/**/*.v"]|' \
+				-e '/"USE_SLANG": true,/d' "synth/asic/$pdk/config.json"
+		fi
 	fi
 done
-[ "$PROFILE" = hls ] && mkdir -p hls python && touch hls/.gitkeep python/.gitkeep
-for d in ${EXTRA_DIRS//-/}; do mkdir -p "$d"; [ -n "$(ls -A "$d")" ] || touch "$d/.gitkeep"; done
+[ "$PROFILE" = hls ] && keep_dir hls && keep_dir python
+for d in ${EXTRA_DIRS//-/}; do keep_dir "$d"; done
 
 # --- Fichiers du projet ---
 step "fichiers"
-cp "$T/sf-project.env" sf-project.env; fill sf-project.env
-sed -i "s/^HDL_STANDARD=.*/HDL_STANDARD=$HDL_STANDARD/" sf-project.env
-cp "$T/Makefile.ip" Makefile
-cp "$T/README.ip.md" README.md; fill README.md; sed -i "s/<résumé>/IP $PREFIX/" README.md
-cp "$T/project/CHANGELOG.md" CHANGELOG.md; fill CHANGELOG.md
-cp "$T/project/gitignore" .gitignore
-cp "$T/editorconfig" .editorconfig
-cp "$T/ci.yml" .github/workflows/ci.yml
-sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py" > "sim/cocotb/test_$TOP.py"
+put "$T/sf-project.env" sf-project.env fill && sed -i "s/^HDL_STANDARD=.*/HDL_STANDARD=$HDL_STANDARD/" sf-project.env
+put "$T/Makefile.ip" Makefile || true
+put "$T/README.ip.md" README.md fill && sed -i "s/<résumé>/$ID $PREFIX/" README.md
+put "$T/project/CHANGELOG.md" CHANGELOG.md fill || true
+if [ -e .gitignore ]; then # complété : lignes du modèle absentes ajoutées, rien n'est retiré
+	added=0
+	while IFS= read -r line; do
+		[ -n "$line" ] && [[ "$line" != \#* ]] && ! grep -qxF "$line" .gitignore && { echo "$line" >>.gitignore; added=$((added + 1)); }
+	done <"$T/project/gitignore"
+	[ $added -gt 0 ] && CREATED+=(".gitignore (+$added lignes)") || KEPT+=(.gitignore)
+else
+	put "$T/project/gitignore" .gitignore
+fi
+put "$T/editorconfig" .editorconfig || true
+put "$T/ci.yml" .github/workflows/ci.yml || true
+sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py" | put_text "sim/cocotb/test_$TOP.py" || true
 MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
-{
-	sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
-		-e "s/<une phrase>/Top de l'IP $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
-		-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
-		"$T/module.$MOD_EXT" > "src/$TOP.$MOD_EXT"
-}
+sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
+	-e "s/<une phrase>/Top de $ID $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
+	-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
+	"$T/module.$MOD_EXT" | put_text "src/$TOP.$MOD_EXT" || true
 if [ $REGS -eq 1 ]; then
-	mkdir -p regs sw; cp "$T/misra_suppressions.txt" sw/misra_suppressions.txt
+	put "$T/misra_suppressions.txt" sw/misra_suppressions.txt || true
 	NUM=$((10#${ID#$FAMILY}))
-	cat >"regs/$PREFIX.rdl" <<EOF
+	put_text "regs/$PREFIX.rdl" <<EOF || true
 // ============================================================
 // Register map : $ID $PREFIX — skeleton, to be written in the SPEC phase
 // Convention : SF-REG-001 (tools/sf/docs/standards/). Single source : make regs generates
@@ -176,17 +215,30 @@ if [ $CHECK -eq 1 ]; then
 	done
 fi
 
+if [ -n "$INTO" ]; then
+	step "fichiers créés (${#CREATED[@]}) : ${CREATED[*]:-aucun}"
+	step "fichiers existants conservés (${#KEPT[@]}) : ${KEPT[*]:-aucun}"
+	[ ${#KEPT[@]} -gt 0 ] && echo "   Vérifier que les fichiers conservés (Makefile, sf-project.env…) conviennent aux outils sf-tools."
+fi
+
+COMMIT_MSG="chore: init project from template (profil $PROFILE)"
+[ -n "$INTO" ] && COMMIT_MSG="chore: add sf-tools project infrastructure (profil $PROFILE)"
 if [ $COMMIT -eq 1 ]; then
-	git add -A
-	git commit -q -m "chore: init project from template (profil $PROFILE)"
-	step "commit initial : $(git log --oneline -1)"
+	if [ -n "$INTO" ]; then # seulement ce que le script a créé : jamais les fichiers du projet en cours
+		files=(.gitmodules tools/sf); for f in "${CREATED[@]}"; do files+=("${f%% (*}"); done
+		git add -- "${files[@]}"
+	else
+		git add -A
+	fi
+	git commit -q -m "$COMMIT_MSG"
+	step "commit : $(git log --oneline -1)"
 fi
 
 cat <<EOF
 
-Projet créé : $DEST  (sf-tools $SF_REF, hook pre-commit actif)
+Projet $([ -n "$INTO" ] && echo initialisé || echo créé) : $DEST  (sf-tools $SF_REF, hook pre-commit actif)
 Suite :
   cd $DEST
-  $([ $COMMIT -eq 1 ] || echo 'git add -A && git commit -m "chore: init project from template (profil '"$PROFILE"')"')
+  $([ $COMMIT -eq 1 ] || echo "git add <fichiers> && git commit -m \"$COMMIT_MSG\"")
   gh repo create siliconforge-hw/$NAME --private --source . --remote origin --push && git submodule sync
 EOF
