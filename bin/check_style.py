@@ -154,9 +154,9 @@ class Checker:
             return
         kinds = {"module": "Module", "package": "Package", "interface": "Interface"}
         label = kinds[units[0][1]]
-        for key in (label, "IP", "Description", "Référence"):
-            if not any(re.match(rf"^//\s*{key}\s*:", h) for h in head):
-                self.report("HDL-6.1", 1, f"en-tête : champ '{key}' manquant")
+        for key in (label, "Projet|IP", "Description", "Référence"):
+            if not any(re.match(rf"^//\s*(?:{key})\s*:", h) for h in head):
+                self.report("HDL-6.1", 1, f"en-tête : champ '{key.split('|')[0]}' manquant")
         for h in head:
             m = re.match(rf"^//\s*{label}\s*:\s*(\S+)", h)
             if m and m.group(1) != units[0][2]:

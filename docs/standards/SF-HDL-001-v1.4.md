@@ -1,4 +1,4 @@
-# SF-HDL-001-v1.3 — Norme de codage RTL (SystemVerilog)
+# SF-HDL-001-v1.4 — Norme de codage RTL (SystemVerilog)
 
 | Champ      | Valeur                                            |
 |------------|---------------------------------------------------|
@@ -29,8 +29,8 @@ Les règles sont numérotées `HDL-<section>.<n>` pour pouvoir être citées dan
 
 | Règle | Contenu | Exemple |
 |---|---|---|
-| HDL-2.1 | Tout module d'une IP commence par le **nom court de l'IP**. | `uart_tx`, `uart_rx`, `uart_baudgen` |
-| HDL-2.2 | Une IP à **plusieurs modules** a un top `<ip>_top`. Une IP à un seul module n'a pas de `_top`. | `uart_top` ; `clk_div` seul |
+| HDL-2.1 | Tout module d'un projet (IP, système, démonstrateur, expérience) commence par le **préfixe du projet** (`IP_PREFIX` de `sf-project.env`), en général le nom court de l'IP ou du bloc étudié. | `uart_tx`, `uart_rx`, `rgb2gray_q8_dp` |
+| HDL-2.2 | Un projet à **plusieurs modules** a un top `<préfixe>_top`. Un projet à un seul module n'a pas de `_top`. | `uart_top` ; `clk_div` seul |
 | HDL-2.3 | Suffixes de rôle (liste fermée) : `_top`, `_ctrl` (contrôleur), `_regs` (banc de registres/CSR), `_fsm`, `_dp` (chemin de données), `_<bus>_wrapper` (adaptation à un bus). | `uart_regs`, `gpio_ctrl_axi_wrapper` |
 | HDL-2.4 | Top de carte : `<carte>_top`. | `arty_z7_20_top` |
 | HDL-2.5 | Bibliothèque commune (dépôt `rtl-common`) : préfixe `cmn_`. Ces modules sont référencés, jamais recopiés. | `cmn_sync_2ff`, `cmn_edge_detect`, `cmn_fifo_sync` |
@@ -103,11 +103,13 @@ donne à l'affichage :
 ```systemverilog
 // ============================================================
 // Module      : uart_tx
-// IP          : IP002 uart
+// Projet      : IP002 uart
 // Description : Émetteur série 8N1, débit fixé par CLK_DIV
 // Référence   : IP002-DS-v1.0 §4.2, IP002-TS-v1.0 §2
 // ============================================================
 ```
+
+Le champ `Projet` donne l'identifiant du projet (`IPnnn`, `EXPnnn`…) et son préfixe ; l'ancien nom de champ `IP` reste accepté.
 
 Pas d'auteur ni de date dans l'en-tête : git les connaît, et ils deviennent faux.
 
@@ -162,7 +164,7 @@ Règles de sens (ce que le code fait), complémentaires de la mise en forme. HDL
 ```systemverilog
 // ============================================================
 // Module      : uart_tx
-// IP          : IP002 uart
+// Projet      : IP002 uart
 // Description : Émetteur série 8N1, LSB en premier, débit = f(clk_i) / CLK_DIV
 // Référence   : IP002-DS-v1.0 §4.2
 // ============================================================
@@ -309,3 +311,4 @@ Le script `bin/check_style.py` de sf-tools vérifie les règles suivantes sur le
 | 1.1 | 2026-10-21 | §7 Constructions : HDL-7.1 fonctions et tâches `automatic` (retour d'expérience IP-001 BUG-RTL-008), HDL-7.2 à 7.6 reprises du profil SV-synth ; §8 à §11 renumérotées |
 | 1.2 | 2026-10-22 | HDL-1.6 : code généré (dossiers `gen/`), exclu de la norme, jamais édité à la main ; HDL-7.5 précisée |
 | 1.3 | 2026-10-22 | Norme autonome, publiée avec sf-tools : profil SV-synth défini dans HDL-7.5 ; activation par `sf-project.env` ; §10 à jour (`bin/check_style.py` de sf-tools) |
+| 1.4 | 2026-10-28 | Catégories de projets : HDL-2.1 / 2.2 parlent du préfixe du **projet** (IP, système, démonstrateur, expérience) ; en-tête de fichier : champ `Projet` (`IP` toujours accepté) |

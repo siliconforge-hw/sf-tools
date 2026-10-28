@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Crée un nouveau projet d'IP sf-tools, sans assistant : arborescence, sf-tools en sous-module épinglé,
+# Crée un nouveau projet sf-tools, sans assistant : arborescence, sf-tools en sous-module épinglé,
 # sf-project.env, Makefile, squelettes RTL et cocotb, CI, hook pre-commit, puis vérification.
+# La catégorie du projet se déduit de la famille de son identifiant (config/categories.conf).
 #
-# Usage : new_project.sh --name ip-<nom> --ip-id IPnnn [options]
+# Usage : new_project.sh --name <nom> --id <FAMnnn> [options]
 #   --name NOM          nom du projet et du dossier (ip-<nom> pour une IP)              (requis)
-#   --ip-id ID          identifiant IPnnn                                                (requis)
-#   --prefix P          préfixe des modules, HDL-2.1           (défaut : <nom> sans « ip- », - → _)
+#   --id ID             identifiant FAMnnn, FAM dans config/categories.conf (IP, SYS, DEM, EXP)  (requis)
+#                       (--ip-id : ancien nom de cette option, toujours accepté)
+#   --prefix P          préfixe des modules, HDL-2.1   (défaut : <nom> sans « ip- »/« exp- »…, - → _)
 #   --top T             module top                                         (défaut : <prefix>_top)
-#   --profile P         ip | board | hls                                                (défaut : ip)
+#   --profile P         ip | board | hls                         (défaut : celui de la catégorie)
 #   --asic PDK          sky130 | gf180 | both | none                (défaut : sky130 ; none si board)
 #   --no-fpga           sans cible FPGA (Arty Z7-20)
 #   --lang L            sv (profil SV-synth, norme SF-HDL-001) | v (Verilog-2005, sans norme)  (défaut : sv)
@@ -22,14 +24,14 @@
 set -euo pipefail
 
 SELF_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-NAME=""; IP_ID=""; PREFIX=""; TOP=""; PROFILE=ip; ASIC=""; FPGA=1; LANG_RTL=sv; REGS=0
+NAME=""; ID=""; PREFIX=""; TOP=""; PROFILE=""; ASIC=""; FPGA=1; LANG_RTL=sv; REGS=0
 PARENT="."; SF_URL="git@github.com:siliconforge-hw/sf-tools.git"; SF_REF=""; RELATIVE=1; CHECK=1; COMMIT=0
 
 die() { echo "new_project.sh : $*" >&2; exit 1; }
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--name) NAME="$2"; shift 2 ;;
-		--ip-id) IP_ID="$2"; shift 2 ;;
+		--id|--ip-id) ID="$2"; shift 2 ;;
 		--prefix) PREFIX="$2"; shift 2 ;;
 		--top) TOP="$2"; shift 2 ;;
 		--profile) PROFILE="$2"; shift 2 ;;
@@ -43,7 +45,7 @@ while [ $# -gt 0 ]; do
 		--no-relative-url) RELATIVE=0; shift ;;
 		--no-check) CHECK=0; shift ;;
 		--commit) COMMIT=1; shift ;;
-		-h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+		-h|--help) sed -n '2,26p' "$0"; exit 0 ;;
 		*) die "option inconnue : $1 (--help)" ;;
 	esac
 done
@@ -51,13 +53,22 @@ done
 # --- Validation ---
 [ -n "$NAME" ] || die "--name requis"
 [[ "$NAME" =~ ^[a-z][a-z0-9-]*$ ]] || die "--name : minuscules, chiffres, tirets ($NAME)"
-[[ "$IP_ID" =~ ^IP[0-9]{3}$ ]] || die "--ip-id : forme IPnnn ($IP_ID)"
-PREFIX="${PREFIX:-$(echo "${NAME#ip-}" | tr '-' '_')}"
+# Catégorie : famille de l'identifiant, lue dans config/categories.conf
+CAT_FILE="$SELF_ROOT/config/categories.conf"
+FAMILIES="$(grep -vE '^[[:space:]]*(#|$)' "$CAT_FILE" | cut -d'|' -f1 | tr -d ' ' | tr '\n' ' ')"
+[[ "$ID" =~ ^([A-Z]+)([0-9]{3})$ ]] || die "--id : forme FAMnnn, FAM parmi : $FAMILIES($ID)"
+FAMILY="${BASH_REMATCH[1]}"
+CAT_LINE="$(grep -E "^[[:space:]]*$FAMILY[[:space:]]*\|" "$CAT_FILE" || true)"
+[ -n "$CAT_LINE" ] || die "--id : famille $FAMILY inconnue (connues : $FAMILIES; ajout : config/categories.conf)"
+catf() { echo "$CAT_LINE" | cut -d'|' -f"$1" | sed 's/^ *//; s/ *$//'; }
+CATEGORY="$(catf 2)"; PROFILE="${PROFILE:-$(catf 3)}"; REGS_ALLOWED="$(catf 4)"; EXTRA_DIRS="$(catf 5)"
+[ $REGS -eq 0 ] || [ "$REGS_ALLOWED" = allowed ] || die "--regs : pas de carte de registres pour la catégorie $CATEGORY"
+PREFIX="${PREFIX:-$(echo "$NAME" | sed -E 's/^(ip|sys|dem|exp)-//' | tr '-' '_')}"
 [[ "$PREFIX" =~ ^[a-z][a-z0-9_]*$ ]] || die "--prefix : snake_case ($PREFIX)"
 TOP="${TOP:-${PREFIX}_top}"
 [[ "$TOP" == "$PREFIX" || "$TOP" == "${PREFIX}_"* ]] || die "--top doit commencer par le préfixe d'IP ${PREFIX}_ (HDL-2.1)"
 case "$PROFILE" in ip|hls) ASIC="${ASIC:-sky130}" ;; board) ASIC="${ASIC:-none}" ;;
-	soc) die "profil soc non couvert par ce script" ;; *) die "--profile : ip | board | hls" ;; esac
+	soc) die "profil soc (catégorie $CATEGORY) pas encore couvert par ce script : voir sf-handbook, catégories" ;; *) die "--profile : ip | board | hls" ;; esac
 case "$ASIC" in sky130|gf180|both|none) ;; *) die "--asic : sky130 | gf180 | both | none" ;; esac
 case "$LANG_RTL" in sv) HDL_STANDARD=SF-HDL-001 ;; v) HDL_STANDARD="" ;; *) die "--lang : sv | v" ;; esac
 [ $REGS -eq 0 ] || [ "$LANG_RTL" = sv ] || die "--regs suppose --lang sv"
@@ -69,7 +80,7 @@ DEST="$(cd "$PARENT" && pwd)/$NAME"
 
 step() { echo "== $*"; }
 fill() { # fichier : remplace les champs du projet
-	sed -i -e "s/<projet>/$NAME/g" -e "s/<IPxxx>/$IP_ID/g" -e "s/<top>/$TOP/g" -e "s/<ip>/$PREFIX/g" \
+	sed -i -e "s/<projet>/$NAME/g" -e "s/<IPxxx>/$ID/g" -e "s/<categorie>/$CATEGORY/g" -e "s/<top>/$TOP/g" -e "s/<ip>/$PREFIX/g" \
 		-e "s/<profil>/$PROFILE/g" "$1"
 }
 
@@ -86,7 +97,7 @@ T=tools/sf/templates
 [ -d "$T/project" ] || die "sf-tools $SF_REF trop ancien : templates/project absent"
 
 # --- Arborescence ---
-step "arborescence (profil $PROFILE, FPGA $([ $FPGA -eq 1 ] && echo oui || echo non), ASIC $ASIC, $LANG_RTL)"
+step "arborescence (catégorie $CATEGORY, profil $PROFILE, FPGA $([ $FPGA -eq 1 ] && echo oui || echo non), ASIC $ASIC, $LANG_RTL)"
 cp -r "$T/project/docs" .
 mkdir -p src sim/cocotb build .github/workflows; touch build/.gitkeep
 if [ $FPGA -eq 1 ]; then mkdir -p synth/fpga; cp -r "$T/project/synth/fpga/arty_z7_20" synth/fpga/; fi
@@ -99,6 +110,7 @@ for pdk in sky130 gf180; do
 	fi
 done
 [ "$PROFILE" = hls ] && mkdir -p hls python && touch hls/.gitkeep python/.gitkeep
+for d in ${EXTRA_DIRS//-/}; do mkdir -p "$d"; [ -n "$(ls -A "$d")" ] || touch "$d/.gitkeep"; done
 
 # --- Fichiers du projet ---
 step "fichiers"
@@ -113,7 +125,7 @@ cp "$T/ci.yml" .github/workflows/ci.yml
 sed "s/TOP = \"my_top\"/TOP = \"$TOP\"/" "$T/test_top.py" > "sim/cocotb/test_$TOP.py"
 MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
 {
-	sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$IP_ID/g" -e "s/<ip>/$PREFIX/g" \
+	sed -e "s/<ip>_<role>/$TOP/g" -e "s/<IPxxx>/$ID/g" -e "s/<ip>/$PREFIX/g" \
 		-e "s/<une phrase>/Top de l'IP $PREFIX (squelette, à remplacer en phase RTL)/" -e "s/§<x>/(à écrire)/" \
 		-e "s|// <description>|// largeur des données (squelette)|" -e "s|// <Interface>|// Données (squelette)|" \
 		"$T/module.$MOD_EXT" > "src/$TOP.$MOD_EXT"
@@ -122,13 +134,13 @@ if [ $REGS -eq 1 ]; then
 	mkdir -p regs sw; cp "$T/misra_suppressions.txt" sw/misra_suppressions.txt
 	cat >"regs/$PREFIX.rdl" <<EOF
 // ============================================================
-// Register map : $IP_ID $PREFIX — skeleton, to be written in the SPEC phase
+// Register map : $ID $PREFIX — skeleton, to be written in the SPEC phase
 // Single source : make regs generates src/gen/, sw/gen/, docs/gen/, ipxact/.
 // Language : English (source of the C comments, SF-CS-001 SF-070).
 // ============================================================
 
 addrmap ${PREFIX}_regs {
-	name = "$IP_ID $PREFIX";
+	name = "$ID $PREFIX";
 	desc = "$PREFIX control and status registers.";
 
 	default regwidth = 32;

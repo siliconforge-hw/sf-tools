@@ -37,7 +37,12 @@ command -v "$CLANG_FORMAT" >/dev/null || { echo "gen_regs.sh : $CLANG_FORMAT int
 NAME=$(basename "$RDL" .rdl)_regs
 INC="$SF_ROOT/regmap"     # sf_common.rdl (SF-REG-001)
 # REG-5 : IP_NUM de la carte vérifié contre IP_ID de sf-project.env
-[ -f sf-project.env ] && SF_IP_ID="$(sed -n 's/^IP_ID=\([^ #]*\).*/\1/p' sf-project.env)" && export SF_IP_ID
+# (PROJECT_ID, ou IP_ID pour les projets antérieurs à sf-tools 0.10 ; contrôle seulement pour un identifiant IPnnn)
+if [ -f sf-project.env ]; then
+	SF_IP_ID="$(sed -n 's/^PROJECT_ID=\([^ #]*\).*/\1/p' sf-project.env)"
+	[ -n "$SF_IP_ID" ] || SF_IP_ID="$(sed -n 's/^IP_ID=\([^ #]*\).*/\1/p' sf-project.env)"
+	export SF_IP_ID
+fi
 OUT="."
 if [ $CHECK -eq 1 ]; then
 	OUT=$(mktemp -d)

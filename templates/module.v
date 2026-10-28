@@ -1,6 +1,6 @@
 // ============================================================
 // Module      : <ip>_<role>
-// IP          : <IPxxx> <ip>
+// Projet      : <IPxxx> <ip>
 // Description : <une phrase>
 // Référence   : <IPxxx>-DS-v1.0 §<x>
 // Langage     : Verilog-2005 (pas de contrôle SF-HDL-001)

@@ -3,7 +3,7 @@
 # Usage : make <cible> [VAR=valeur] ; make help
 # ============================================================
 
-# Identité du projet : PROJECT, IP_ID, TOP_MODULE, IP_PREFIX, HDL_STANDARD
+# Identité du projet : PROJECT, PROJECT_ID, CATEGORY, TOP_MODULE, IP_PREFIX, HDL_STANDARD
 include sf-project.env
 
 SF_TOOLS     ?= tools/sf
