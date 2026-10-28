@@ -1,5 +1,17 @@
 # Changelog — sf-tools
 
+## [0.10.0] — 2026-10-28
+### Added
+- Catégories de projets : `config/categories.conf` (IP, SYS, DEM, EXP — famille, profil par défaut, registres
+  autorisés, dossiers propres), source unique lue par `new_project.sh` ; ajouter une catégorie = une ligne
+- `new_project.sh --id FAMnnn` (`--ip-id` toujours accepté) : catégorie déduite de la famille ; refus d'une
+  famille inconnue, de `--regs` hors IP/SYS, et du profil soc (pas encore couvert) ; `python/` pour une EXP
+- `sf-project.env` : `PROJECT_ID` et `CATEGORY` (les outils lisent encore `IP_ID` des projets antérieurs)
+### Changed
+- SF-HDL-001 v1.4 : HDL-2.1 / 2.2 parlent du préfixe du **projet** ; champ d'en-tête `Projet` (`IP` accepté)
+- `new_project.sh --regs` : le squelette suit SF-REG-001 (`sf_common.rdl`, `ID` numéroté depuis l'identifiant,
+  `VERSION` 0.1.0)
+
 ## [0.9.0] — 2026-10-23
 ### Added
 - SF-REG-001 v1.2 : REG-4 — champs de `CAPS` fixés par un paramètre de synthèse (`sf_param_f`, `sw = r;
