@@ -132,12 +132,15 @@ MOD_EXT=sv; [ "$LANG_RTL" = v ] && MOD_EXT=v
 }
 if [ $REGS -eq 1 ]; then
 	mkdir -p regs sw; cp "$T/misra_suppressions.txt" sw/misra_suppressions.txt
+	NUM=$((10#${ID#$FAMILY}))
 	cat >"regs/$PREFIX.rdl" <<EOF
 // ============================================================
 // Register map : $ID $PREFIX — skeleton, to be written in the SPEC phase
-// Single source : make regs generates src/gen/, sw/gen/, docs/gen/, ipxact/.
-// Language : English (source of the C comments, SF-CS-001 SF-070).
+// Convention : SF-REG-001 (tools/sf/docs/standards/). Single source : make regs generates
+// src/gen/, sw/gen/, docs/gen/, ipxact/. Language : English (source of the C comments, SF-070).
 // ============================================================
+
+\`include "sf_common.rdl"
 
 addrmap ${PREFIX}_regs {
 	name = "$ID $PREFIX";
@@ -146,10 +149,15 @@ addrmap ${PREFIX}_regs {
 	default regwidth = 32;
 	default accesswidth = 32;
 
+	// --- Functional registers from 0x000 (REG-2) ---
 	reg {
 		name = "Control";
 		field { desc = "Block enable."; sw = rw; hw = r; } EN[0:0] = 0;
 	} CTRL @ 0x00;
+
+	// --- Identification block (REG-4) ---
+	sf_id_t      #(.P_IP_NUM($NUM))                         ID      @ 0xF0;
+	sf_version_t #(.P_MAJOR(0), .P_MINOR(1), .P_PATCH(0)) VERSION @ 0xF4;
 };
 EOF
 fi
