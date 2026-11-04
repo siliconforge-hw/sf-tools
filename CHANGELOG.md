@@ -1,5 +1,17 @@
 # Changelog — sf-tools
 
+## [0.11.2] — 2026-11-04
+### Fixed
+- `gen_regs.sh` : avec un reset de champ porté par un signal (SF-REG-001 §7), `docs/gen/<ip>_regs.md`
+  contenait le repr Python du `SignalNode` (adresse mémoire variable) : `make regs-check` échouait toujours.
+  Le markdown passe par `regmap/peakrdl_md.py` et affiche « signal `<nom>` » ; l'avertissement bénin de
+  l'exporteur markdown sur les signaux est filtré (signalé par ip-uart, IP002)
+### Added
+- `gen_regs.sh` : garde-fou, échec si une sortie contient un repr d'objet Python ; note listant les champs à
+  reset par signal, exportés sans valeur de reset dans l'IP-XACT (limitation documentée en SF-REG-001 §7)
+- CI de sf-tools (`.github/workflows/ci.yml`) et tests de non-régression (`tests/run_tests.sh`) : carte avec
+  reset par signal générée deux fois, sorties identiques octet pour octet, `--check` à 0
+
 ## [0.11.1] — 2026-10-28
 ### Fixed
 - README généré : identifiant suivi du libellé de la catégorie (plus « EXP001 — EXP001 rgb2gray »), phase
