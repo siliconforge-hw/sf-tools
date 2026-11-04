@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+# résultats écrits par les tests cocotb lancés depuis tests/
+tests/**/*.result.xml

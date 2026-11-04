@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Tests de non-régression de sf-tools (local et CI). Besoins : venv PeakRDL, clang-format, Verilator, Icarus,
-# Yosys + slang (config/defaults.env, ou ci/setup_tools.sh).
+# Tests de non-régression de sf-tools (local et CI). Besoins : venvs PeakRDL et cocotb, clang-format,
+# Verilator, Icarus, Yosys + slang (config/defaults.env, ou ci/setup_tools.sh).
 set -euo pipefail
 
 SF_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -47,6 +47,18 @@ if bash "$SF_ROOT/bin/lint.sh" -t multidriven_bad --style src/multidriven_bad.sv
 else
 	grep -q 'warning bloquant' "$WORK/lint_bad.log" && grep -q '^%Warning-MULTIDRIVEN' build/lint/verilator.log \
 		&& ok "MULTIDRIVEN hors gen/ toujours bloquant" || { cat "$WORK/lint_bad.log"; fail "échec du contre-exemple pour une autre raison"; }
+fi
+
+# --- sim/sf_cocotb.py : axil_bus sur des ports suffixés (HDL-3.4), simulation Verilator ---
+echo "== sf_cocotb.axil_bus : simulation (Verilator)"
+source "$SF_ROOT/bin/sf_env.sh"   # COCOTB_VENV
+PATH="$(dirname "$VERILATOR"):$PATH"
+if SF_TEST_SRC="$WORK/p/src" SF_TEST_BUILD="$WORK/build" "$COCOTB_VENV/bin/pytest" -q -s -p no:cacheprovider \
+	"$SF_ROOT/tests/sim/test_axil_bus.py" >"$WORK/sim.log" 2>&1; then
+	grep -qE 'TESTS=4 PASS=4 FAIL=0' "$WORK/sim.log" && ok "4 tests cocotb PASS (ID, reset par paramètre, écriture relue, préfixe refusé)" \
+		|| { tail -20 "$WORK/sim.log"; fail "résumé cocotb inattendu"; }
+else
+	tail -30 "$WORK/sim.log"; fail "simulation axil_bus"
 fi
 
 echo

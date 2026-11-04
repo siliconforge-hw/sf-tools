@@ -52,6 +52,7 @@ HDL_STANDARD=SF-HDL-001
 | `docs/standards/` | **SF-HDL-001** (RTL SystemVerilog), **SF-CS-001** (C embarqué), **SF-REG-001** (convention des registres) : les normes appliquées par ces outils | — |
 | `regmap/sf_common.rdl` | types SystemRDL communs (SF-REG-001) : `sf_id_t`, `sf_version_t` (bloc `0xF0`), champs `sf_event_f` / `sf_level_f` de `IS` ; inclus automatiquement par `gen_regs.sh` | — |
 | `bin/new_project.sh` | création d'un projet complet et vérifié | — |
+| `sim/sf_cocotb.py` | aides cocotb : `axil_bus(dut, "s_axi")`, bus AXI4-Lite sur des ports suffixés selon HDL-3.4 (`s_axi_awvalid_i`…), que `AxiLiteBus.from_prefix` ne trouve pas ; import : `sys.path.insert(0, str(PROJ / "tools" / "sf" / "sim"))` | `make sim` |
 | `templates/` | modèles d'un nouveau projet (`project/` : docs, synth FPGA/ASIC, CHANGELOG, .gitignore) : `Makefile.ip`, `sf-project.env`, `module.sv`, `test_top.py` (cocotb), `README.ip.md`, `editorconfig`, `misra_suppressions.txt`, `ci.yml` (GitHub Actions), `module.v` (Verilog-2005) | — |
 | `hooks/pre-commit` | hook git : `lint` / `regs-check` / `sw-lint` selon les fichiers indexés | `make hooks` |
 | `ci/setup_tools.sh`, `ci/versions.env`, `ci/requirements-*.txt` | installation épinglée de la chaîne d'outils (CI, nouveau poste Ubuntu 24.04) | — |
@@ -65,7 +66,7 @@ Les messages des outils citent les règles des normes (`%Style-HDL-3.1`, `SF-033
 
 ## Tests de sf-tools
 
-`tests/run_tests.sh` : tests de non-régression des scripts — `gen_regs.sh` (carte avec reset porté par un signal, sorties déterministes) et `lint.sh` (top écrit à la main qui instancie le regblock : lint vert ; contre-exemple `MULTIDRIVEN` hors `gen/` : lint en échec). Lancés par la CI de ce dépôt (`.github/workflows/ci.yml`, outils de `ci/setup_tools.sh` en cache) à chaque push sur `main` et à chaque tag.
+`tests/run_tests.sh` : tests de non-régression des scripts — `gen_regs.sh` (carte avec reset porté par un signal, sorties déterministes) `lint.sh` (top écrit à la main qui instancie le regblock : lint vert ; contre-exemple `MULTIDRIVEN` hors `gen/` : lint en échec) et `sim/sf_cocotb.py` (simulation Verilator de ce top par `axil_bus`). Lancés par la CI de ce dépôt (`.github/workflows/ci.yml`, outils de `ci/setup_tools.sh` en cache) à chaque push sur `main` et à chaque tag.
 
 ## Configurer les chemins des outils
 
