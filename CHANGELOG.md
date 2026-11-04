@@ -1,5 +1,15 @@
 # Changelog — sf-tools
 
+## [0.12.0] — 2026-11-04
+### Added
+- `sim/sf_cocotb.py` : `axil_bus(dut, prefix)` construit l'`AxiLiteBus` de cocotbext-axi pour des ports
+  nommés selon SF-HDL-001 HDL-3.4 (`s_axi_<signal>_i` / `_o`), que `AxiLiteBus.from_prefix` ne trouve pas ;
+  rôle du DUT déduit du préfixe (`s_` esclave, `m_` maître), préfixe sans rôle refusé (demandé par ip-uart)
+- Test : simulation Verilator du top de test par `axil_bus` (bloc d'identification, reset fixé par un
+  paramètre, écriture relue)
+### Changed
+- Top de test `tests/lint/sigreset_top.sv` : ports `s_axi_*` (préfixe de HDL-3.4) au lieu de `s_axil_*`
+
 ## [0.11.3] — 2026-11-04
 ### Fixed
 - `lint.sh` : `make lint` échouait dès qu'un top instancie un regblock PeakRDL (56 `MULTIDRIVEN` Verilator
