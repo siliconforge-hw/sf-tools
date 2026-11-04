@@ -1,5 +1,6 @@
 # CI de sf-tools : tests de non-régression (tests/run_tests.sh).
-# Seuls les outils nécessaires sont installés : venv PeakRDL épinglé et clang-format (pas d'OSS CAD Suite).
+# Outils installés par ci/setup_tools.sh (OSS CAD Suite, venvs, clang-format), en cache comme dans la CI
+# des projets (templates/ci.yml).
 name: ci
 on:
   push:
@@ -9,13 +10,17 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Outils (clang-format, venv PeakRDL)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends clang-format
-          python3 -m venv ~/tools/venvs/peakrdl
-          ~/tools/venvs/peakrdl/bin/pip install -q -r ci/requirements-peakrdl.txt
+      - name: Cache des outils (OSS CAD Suite, venvs)
+        uses: actions/cache@v4
+        with:
+          path: ~/tools
+          key: sf-tools-${{ runner.os }}-${{ hashFiles('ci/versions.env', 'ci/requirements-*.txt') }}
+      - name: Installation des outils
+        run: bash ci/setup_tools.sh
+      - name: Configuration
+        run: bash bin/sf_config.sh
       - name: Tests
         run: tests/run_tests.sh

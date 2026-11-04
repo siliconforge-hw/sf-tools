@@ -65,7 +65,7 @@ Les messages des outils citent les règles des normes (`%Style-HDL-3.1`, `SF-033
 
 ## Tests de sf-tools
 
-`tests/run_tests.sh` : tests de non-régression des scripts (aujourd'hui `gen_regs.sh` : carte avec reset porté par un signal, sorties déterministes). Lancés par la CI de ce dépôt (`.github/workflows/ci.yml`, venv PeakRDL et clang-format seulement) à chaque push sur `main` et à chaque tag.
+`tests/run_tests.sh` : tests de non-régression des scripts — `gen_regs.sh` (carte avec reset porté par un signal, sorties déterministes) et `lint.sh` (top écrit à la main qui instancie le regblock : lint vert ; contre-exemple `MULTIDRIVEN` hors `gen/` : lint en échec). Lancés par la CI de ce dépôt (`.github/workflows/ci.yml`, outils de `ci/setup_tools.sh` en cache) à chaque push sur `main` et à chaque tag.
 
 ## Configurer les chemins des outils
 

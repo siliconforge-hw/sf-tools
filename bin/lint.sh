@@ -45,11 +45,15 @@ for i in "${INCS[@]+"${INCS[@]}"}"; do V_ARGS+=("-I$i"); I_ARGS+=("-I$i"); Y_DEF
 
 # Code généré (dossiers gen/, SF-HDL-001 HDL-1.6) : compilé avec le reste, mais ses warnings
 # Verilator sont neutralisés (on ne corrige pas un fichier généré) et la norme ne s'y applique pas.
+# `lint_off` sans -rule ne couvre que la catégorie lint de Verilator : MULTIDRIVEN est ajouté à part
+# (faux positif de PeakRDL-regblock : struct non packé field_storage / field_combo écrit par plusieurs
+# processus, visible dès qu'un top instancie le regblock). Limité à */gen/* : un MULTIDRIVEN dans le RTL
+# écrit à la main reste bloquant, et Yosys contrôle toujours les pilotes multiples du code généré.
 GEN_FILES=()
 for f in "${FILES[@]}"; do [[ "/$f" == */gen/* ]] && GEN_FILES+=("$f"); done
 V_GEN=()
 if [ ${#GEN_FILES[@]} -gt 0 ]; then
-	printf '`verilator_config\nlint_off -file "*/gen/*"\n' >"$LOG_DIR/gen_waivers.vlt"
+	printf '`verilator_config\nlint_off -file "*/gen/*"\nlint_off -rule MULTIDRIVEN -file "*/gen/*"\n' >"$LOG_DIR/gen_waivers.vlt"
 	V_GEN=("$LOG_DIR/gen_waivers.vlt")
 	echo "   (${#GEN_FILES[@]} fichier(s) généré(s) : warnings Verilator neutralisés, norme non appliquée)"
 fi
