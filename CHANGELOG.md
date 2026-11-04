@@ -1,5 +1,17 @@
 # Changelog — sf-tools
 
+## [0.11.3] — 2026-11-04
+### Fixed
+- `lint.sh` : `make lint` échouait dès qu'un top instancie un regblock PeakRDL (56 `MULTIDRIVEN` Verilator
+  sur ip-uart, faux positif sur `field_storage` / `field_combo`). La dérogation du code généré
+  (`lint_off -file "*/gen/*"`) ne couvre que la catégorie lint de Verilator : ajout de
+  `lint_off -rule MULTIDRIVEN -file "*/gen/*"`. Un `MULTIDRIVEN` dans le RTL écrit à la main reste
+  bloquant ; Yosys contrôle toujours les pilotes multiples du code généré (signalé par ip-uart, IP002)
+### Added
+- Tests : top écrit à la main qui instancie le regblock de `tests/regs/sigreset.rdl` (lint vert, norme
+  comprise) et contre-exemple `MULTIDRIVEN` hors `gen/` (lint en échec) ; la CI de sf-tools installe les
+  outils par `ci/setup_tools.sh`, en cache
+
 ## [0.11.2] — 2026-11-04
 ### Fixed
 - `gen_regs.sh` : avec un reset de champ porté par un signal (SF-REG-001 §7), `docs/gen/<ip>_regs.md`
