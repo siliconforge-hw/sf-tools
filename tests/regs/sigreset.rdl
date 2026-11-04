@@ -1,0 +1,26 @@
+// ============================================================
+// Test sf-tools : reset d'un champ porté par un signal (SF-REG-001 §7, PeakRDL `signal` + `->reset`).
+// Toutes les sorties de gen_regs.sh doivent être déterministes (non-régression sf-tools 0.11.2).
+// ============================================================
+
+`include "sf_common.rdl"
+
+addrmap sigreset_regs {
+	name = "sigreset test";
+	desc = "Field reset driven by a signal.";
+
+	default regwidth = 32;
+	default accesswidth = 32;
+
+	signal { desc = "Reset value of DIV, from a top-level parameter."; activehigh; } div_reset[8];
+
+	reg {
+		name = "Divider";
+		field { desc = "Divider value."; sw = rw; hw = r; } DIV[7:0];
+		DIV->reset = div_reset;
+		field { desc = "Enable."; sw = rw; hw = r; } EN[8:8] = 0;
+	} DIVR @ 0x00;
+
+	sf_id_t      #(.P_IP_NUM(999))                         ID      @ 0xF0;
+	sf_version_t #(.P_MAJOR(0), .P_MINOR(1), .P_PATCH(0)) VERSION @ 0xF4;
+};

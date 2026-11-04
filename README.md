@@ -63,6 +63,10 @@ Les messages des outils citent les règles des normes (`%Style-HDL-3.1`, `SF-033
 - **pre-commit** (`make hooks`, une fois par clone) : avant chaque commit, `make lint` si du RTL est indexé, `make regs-check` si un `.rdl` ou un fichier généré l'est, `make sw-lint` pour du C. Passer outre : `git commit --no-verify`.
 - **CI** (`templates/ci.yml` → `.github/workflows/ci.yml`) : à chaque push, un clone `--recursive` du projet installe les outils épinglés (`ci/setup_tools.sh`, en cache) puis lance `regs-check`, `lint`, `sw-lint`, `sim-all`. C'est la garantie permanente qu'un projet se construit avec ses seuls outils. Hors CI : Vivado, LibreLane, RISC-V.
 
+## Tests de sf-tools
+
+`tests/run_tests.sh` : tests de non-régression des scripts (aujourd'hui `gen_regs.sh` : carte avec reset porté par un signal, sorties déterministes). Lancés par la CI de ce dépôt (`.github/workflows/ci.yml`, venv PeakRDL et clang-format seulement) à chaque push sur `main` et à chaque tag.
+
 ## Configurer les chemins des outils
 
 Les chemins par défaut sont ceux de l'environnement de référence (`config/defaults.env`). Sur un autre poste :

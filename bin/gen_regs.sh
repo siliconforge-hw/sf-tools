@@ -57,10 +57,26 @@ mkdir -p "$OUT/src/gen" "$OUT/sw/gen" "$OUT/docs/gen" "$OUT/ipxact"
 rm -f "$OUT/sw/gen/${NAME}_hw.h.raw"
 "$PEAKRDL" regblock "$RDL" -I "$INC" -o "$OUT/src/gen/" --cpuif "$CPUIF" --addr-width "$ADDR_WIDTH" --default-reset rst_n \
 	--module-name "$NAME" --package-name "${NAME}_pkg"
-"$PEAKRDL" markdown "$RDL" -I "$INC" -o "$OUT/docs/gen/$NAME.md"
+# markdown : via peakrdl_md.py, pour qu'un reset porté par un signal (SF-REG-001 §7) s'écrive « signal `<nom>` »
+# et non avec le repr Python du SignalNode (adresse mémoire, différente à chaque exécution) ; l'exporteur
+# signale aussi qu'un signal n'est pas documenté comme un registre : avertissement bénin, filtré
+# (pipefail : le code de retour reste celui de peakrdl ; le groupe de filtrage renvoie toujours 0)
+"$PYTHON" -I "$SF_ROOT/regmap/peakrdl_md.py" markdown "$RDL" -I "$INC" -o "$OUT/docs/gen/$NAME.md" \
+	2>&1 | { grep -v 'Unsupported type of node (SignalNode)' || true; } >&2
+# ip-xact : un champ à reset par signal est exporté sans valeur de reset (limitation connue, SF-REG-001 §7)
 "$PEAKRDL" ip-xact "$RDL" -I "$INC" -o "$OUT/ipxact/$NAME.xml" --vendor siliconforge --library ip --version "$VERSION"
+SIGS="$(grep -oE 'signal `[A-Za-z0-9_]+`' "$OUT/docs/gen/$NAME.md" | cut -d'`' -f2 | sort -u | tr '\n' ' ' || true)"
+[ -z "$SIGS" ] || echo "   note : IP-XACT sans valeur de reset pour les champs à reset par signal : ${SIGS% }"
 
 FILES=(src/gen/$NAME.sv src/gen/${NAME}_pkg.sv sw/gen/${NAME}_hw.h docs/gen/$NAME.md ipxact/$NAME.xml)
+# Garde-fou : aucune sortie ne doit contenir de repr d'objet Python (non déterministe, et faux pour un lecteur)
+for f in "${FILES[@]}"; do
+	if grep -qE '<[A-Za-z_.]+ [^<>]* at 0x[0-9a-f]+>' "$OUT/$f"; then
+		echo "gen_regs.sh : repr d'objet Python dans $f (sortie non déterministe) :" >&2
+		grep -nE '<[A-Za-z_.]+ [^<>]* at 0x[0-9a-f]+>' "$OUT/$f" >&2
+		exit 1
+	fi
+done
 if [ $CHECK -eq 1 ]; then
 	STALE=0
 	for f in "${FILES[@]}"; do

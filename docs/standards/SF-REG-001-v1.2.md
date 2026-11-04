@@ -90,7 +90,7 @@ addrmap uart_regs {
 };
 ```
 
-**Valeur de reset dépendant d'un paramètre** (ex. diviseur de débit calculé depuis la fréquence d'horloge) : un `signal` RDL de la largeur du champ et `<CHAMP>->reset = <signal>` ; PeakRDL-regblock en fait une entrée `hwif_in.<signal>`, chargée au reset, que le top câble depuis ses paramètres. La couche C ne donne alors pas de valeur de reset pour ce champ ni pour son registre.
+**Valeur de reset dépendant d'un paramètre** (ex. diviseur de débit calculé depuis la fréquence d'horloge) : un `signal` RDL de la largeur du champ et `<CHAMP>->reset = <signal>` ; PeakRDL-regblock en fait une entrée `hwif_in.<signal>`, chargée au reset, que le top câble depuis ses paramètres. La couche C ne donne alors pas de valeur de reset pour ce champ ni pour son registre. La documentation générée indique « signal `<nom>` » comme reset du champ ; l'IP-XACT n'a **pas de valeur de reset** pour ce champ (limitation de PeakRDL-ipxact, signalée par une note de `gen_regs.sh`) : la DS donne la formule de la valeur de reset.
 
 La couche C générée fournit les valeurs attendues (`<IP>_ID_VENDOR_RESET`, `<IP>_ID_IP_NUM_RESET`) pour le contrôle REG-6, et la taille de la fenêtre décodée (`<IP>_ADDR_WINDOW`, `0x1000U`). `gen_regs.sh` génère un port de 12 bits (`--addr-width`, défaut 12).
 
@@ -100,4 +100,4 @@ La couche C générée fournit les valeurs attendues (`<IP>_ID_VENDOR_RESET`, `<
 |---|---|---|
 | 1.0 | 2026-10-23 | (sf-tools 0.7.1 : REG-8a cite aussi BUG-RTL-007 ; REG-14 précise les deux cas d'acquittement.) Création : carte (REG-1 à 3), bloc d'identification `0xF0`–`0xFF` (REG-4 à 6), interruptions `IE`/`IS` avec types de bits et non-perte des événements (REG-7 à 9), alias SET/CLR/TGL (REG-10, 11), nommage (REG-12, 13), tests minimaux (REG-14). Types de bits et REG-8a repris de IP002-DS-v1.0 (brouillon) |
 | 1.1 | 2026-10-23 | REG-1 : port d'adresse de 12 bits (4 Ko) décodé sur toute sa largeur, pas de repliement dans le segment AXI ; REG-2 : 60 registres fonctionnels, extension à partir de `0x100` ; REG-14 : test de non-repliement en `0x1F0` |
-| 1.2 | 2026-10-23 | REG-4 : champs de `CAPS` fixés par un paramètre de synthèse (`sf_param_f`, câblés en constante) ; REG-9 : `IC_<qualif>` pour la configuration propre aux sources seulement ; §7 : reset dépendant d'un paramètre (`signal` RDL). Questions de IP002-DS-v1.0 (P-01, P-25, P-26) |
+| 1.2 | 2026-10-23 | (sf-tools 0.11.2 : §7 précise la documentation et l'IP-XACT d'un reset porté par un signal.) REG-4 : champs de `CAPS` fixés par un paramètre de synthèse (`sf_param_f`, câblés en constante) ; REG-9 : `IC_<qualif>` pour la configuration propre aux sources seulement ; §7 : reset dépendant d'un paramètre (`signal` RDL). Questions de IP002-DS-v1.0 (P-01, P-25, P-26) |
